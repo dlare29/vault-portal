@@ -169,6 +169,27 @@ header {
     font-weight:bold;
     color:#00f0ff;
     letter-spacing:2px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:7px;
+}
+
+.logo .created-by {
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    font-size:70%;
+    font-weight:600;
+    letter-spacing:1px;
+    white-space:nowrap;
+    color:#7cecff;
+    text-shadow:0 0 5px rgba(0,240,255,.9),0 0 10px rgba(0,240,255,.45);
+}
+
+.logo .created-by a {
+    color:#00f0ff !important;
+    text-shadow:0 0 5px rgba(0,240,255,1),0 0 10px rgba(0,240,255,.55);
 }
 
 .top-nav {
@@ -1389,7 +1410,7 @@ input:checked + .slider:before {
 
 
 .user-search-card{margin-bottom:14px;}
-.home-user-search{width:100%;box-sizing:border-box;background:#0d0f12;border:1px solid #333;color:#fff;padding:11px;border-radius:5px;outline:none;font-size:11px;}
+.home-user-search{width:50%;max-width:50%;box-sizing:border-box;background:#0d0f12;border:1px solid #333;color:#fff;padding:11px;border-radius:5px;outline:none;font-size:11px;display:block;}
 .home-user-search:focus{border-color:#00f0ff;}
 .home-user-results{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
 .home-user-result{display:flex;align-items:center;gap:8px;padding:8px;background:#101318;border:1px solid #2a313b;border-radius:5px;}
@@ -1473,6 +1494,33 @@ input:checked + .slider:before {
     #chatWindow {
         right:10px;
         width:calc(100vw - 20px);
+    }
+
+    .logo {
+        width:100%;
+        font-size:15px;
+        letter-spacing:1.4px;
+        gap:5px;
+    }
+
+    .logo .created-by {
+        font-size:70%;
+        letter-spacing:.7px;
+    }
+
+    .home-user-search {
+        width:100%;
+        max-width:100%;
+    }
+
+    .home-user-result {
+        min-width:0;
+    }
+
+    .home-user-result .home-user-name,
+    .home-user-result .home-user-status {
+        overflow:hidden;
+        text-overflow:ellipsis;
     }
 }
 </style>
@@ -2402,6 +2450,7 @@ let friendRequestPoller = null;
 let userEventChannel = null;
 let pendingRequestsCache = [];
 let realtimeMessageNotifications = [];
+let homeSearchToken = 0;
 
 let authMode = "login";
 
@@ -3506,8 +3555,46 @@ function closeNotificationPanel() {
 
 function setupFriendRequestRealtime(){
     if(friendRequestChannel){_supabase.removeChannel(friendRequestChannel);friendRequestChannel=null;}
-    friendRequestChannel=_supabase.channel(`friend-requests:${currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"friends",filter:`friend_id=eq.${currentUser.id}`},async payload=>{const r=payload.new;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).subscribe(status=>console.log("Friend realtime:",status));
-    if(friendRequestPoller)clearInterval(friendRequestPoller); friendRequestPoller=setInterval(()=>{if(currentUser)refreshNotifications();},15000);
+
+    friendRequestChannel = _supabase.channel(`friend-requests:${currentUser.id}`)
+        // Incoming request: someone -> current user
+        .on("postgres_changes", {
+            event:"INSERT", schema:"public", table:"friends",
+            filter:`friend_id=eq.${currentUser.id}`
+        }, async payload => {
+            const r = payload.new;
+            if(!r || r.friend_id !== currentUser.id) return;
+            await refreshNotifications();
+            const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();
+            showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
+        })
+        // Accepted/declined request: current user was the requester
+        .on("postgres_changes", {
+            event:"UPDATE", schema:"public", table:"friends",
+            filter:`user_id=eq.${currentUser.id}`
+        }, async payload => {
+            const r = payload.new;
+            if(!r || r.user_id !== currentUser.id) return;
+            await loadFriends();
+            await refreshNotifications();
+            await renderContacts();
+        })
+        // Also catch the UPDATE on the accepting user's side
+        .on("postgres_changes", {
+            event:"UPDATE", schema:"public", table:"friends",
+            filter:`friend_id=eq.${currentUser.id}`
+        }, async payload => {
+            const r = payload.new;
+            if(!r || r.friend_id !== currentUser.id) return;
+            await loadFriends();
+            await refreshNotifications();
+            await renderContacts();
+        })
+        .subscribe(status=>console.log("Friend realtime:",status));
+
+    if(friendRequestPoller) clearInterval(friendRequestPoller);
+    // Backup only; normal updates are realtime.
+    friendRequestPoller=setInterval(()=>{if(currentUser)refreshNotifications();},15000);
 }
 
 async function renderContacts() {
@@ -3528,38 +3615,6 @@ async function renderContacts() {
         friendsCache.filter(
             f => !f.is_online
         );
-
-
-    const friendIds =
-        new Set(
-            friendsCache.map(f => f.id)
-        );
-
-
-    const nonFriendOnlineIds =
-        Object.keys(presenceUsers)
-        .filter(id =>
-            id !== currentUser.id &&
-            !friendIds.has(id)
-        );
-
-
-    let nonFriendOnline = [];
-
-
-    if (nonFriendOnlineIds.length) {
-
-        const { data } =
-            await _supabase
-                .from("profiles")
-                .select("*")
-                .in(
-                    "id",
-                    nonFriendOnlineIds
-                );
-
-        nonFriendOnline = data || [];
-    }
 
 
     let out = "";
@@ -3621,23 +3676,6 @@ async function renderContacts() {
     else
         out +=
             '<div style="color:#555;font-size:9px;padding:5px;">NO FRIENDS ONLINE</div>';
-
-
-    if (nonFriendOnline.length) {
-
-        out +=
-            '<div class="contact-section">ONLINE MEMBERS</div>';
-
-        nonFriendOnline.forEach(
-            p =>
-                out +=
-                contactHTML(
-                    p,
-                    true,
-                    true
-                )
-        );
-    }
 
 
     out +=
@@ -3840,6 +3878,7 @@ async function searchUsers(query) {
 
 
 async function searchHomeUsers(query) {
+    const token = ++homeSearchToken;
     const q = (query || "").trim();
     const box = document.getElementById("homeUserSearchResults");
     if (!box) return;
@@ -3850,6 +3889,10 @@ async function searchHomeUsers(query) {
         .ilike("display_name", `%${q}%`)
         .neq("id", currentUser.id)
         .limit(20);
+
+    // Ignore an older request that finishes after the user has cleared/changed the search.
+    const liveInput = document.getElementById("homeUserSearch");
+    if (token !== homeSearchToken || liveInput?.value.trim() !== q) return;
 
     if (error) { box.innerHTML = `<div class="home-user-empty">SEARCH ERROR: ${escapeHtml(error.message)}</div>`; return; }
     if (!data?.length) { box.innerHTML = '<div class="home-user-empty">NO REGISTERED MEMBER FOUND</div>'; return; }
@@ -3870,51 +3913,145 @@ async function searchHomeUsers(query) {
 async function sendFriendRequest(friendId) {
     if (!currentUser || !friendId || friendId === currentUser.id) return;
 
-    const { data: existing, error: checkError } = await _supabase.from("friends")
-        .select("id,user_id,friend_id,status")
-        .or(`and(user_id.eq.${currentUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUser.id})`)
-        .limit(1);
+    // Prevent double-clicks / duplicate inserts while the first request is processing.
+    const clicked = document.querySelectorAll(
+        `[onclick*="sendFriendRequest('${friendId}')"]`
+    );
+    clicked.forEach(btn => {
+        btn.disabled = true;
+        btn.dataset.friendRequestSending = "1";
+        btn.style.opacity = "0.55";
+        btn.style.pointerEvents = "none";
+    });
 
-    if (checkError) return alert("Could not check friendship: " + checkError.message);
-    if (existing?.length) {
-        const row = existing[0];
-        if (row.status === "accepted") return alert("You are already friends.");
-        if (row.user_id === friendId && row.friend_id === currentUser.id && row.status === "pending") {
-            return alert("This member already sent you a friend request. Check Notifications.");
+    try {
+        const { data: existing, error: checkError } = await _supabase.from("friends")
+            .select("id,user_id,friend_id,status")
+            .or(`and(user_id.eq.${currentUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUser.id})`)
+            .limit(1);
+
+        if (checkError) {
+            // A transient read/RLS delay should not cause a second INSERT.
+            const retry = await _supabase.from("friends")
+                .select("id,user_id,friend_id,status")
+                .or(`and(user_id.eq.${currentUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUser.id})`)
+                .limit(1);
+            if (retry.error) throw new Error("Could not check friendship: " + retry.error.message);
+            if (retry.data?.length) {
+                const row = retry.data[0];
+                if (row.status === "accepted") return alert("You are already friends.");
+                if (row.user_id === friendId && row.friend_id === currentUser.id && row.status === "pending") {
+                    return alert("This member already sent you a friend request. Check Notifications.");
+                }
+                return alert("Friend request already exists.");
+            }
+            throw new Error("Could not check friendship: " + checkError.message);
         }
-        return alert("Friend request already exists.");
-    }
 
-    const { data:created, error } = await _supabase.from("friends").insert([{
-        user_id: currentUser.id, friend_id: friendId, status: "pending"
-    }]).select("id,user_id,friend_id,status,created_at").maybeSingle();
-    if (error) return alert("Could not send request: " + error.message);
-    await _supabase.channel(`user-events:${friendId}`).send({type:"broadcast",event:"friend_request",payload:{request:created || {user_id:currentUser.id,friend_id:friendId,status:"pending"}}});
-    await refreshNotifications();
-    await loadFriends();
-    const homeSearch = document.getElementById("homeUserSearch");
-    if (homeSearch?.value.trim()) await searchHomeUsers(homeSearch.value);
-    const friendSearch = document.getElementById("friendSearchInput");
-    if (friendSearch?.value.trim()) await searchUsers(friendSearch.value);
-    alert("Friend request sent.");
+        if (existing?.length) {
+            const row = existing[0];
+            if (row.status === "accepted") return alert("You are already friends.");
+            if (row.user_id === friendId && row.friend_id === currentUser.id && row.status === "pending") {
+                return alert("This member already sent you a friend request. Check Notifications.");
+            }
+            return alert("Friend request already exists.");
+        }
+
+        const { data:created, error } = await _supabase.from("friends").insert([{
+            user_id: currentUser.id, friend_id: friendId, status: "pending"
+        }]).select("id,user_id,friend_id,status,created_at").maybeSingle();
+
+        if (error) {
+            // If another click/request won the race, re-check before showing an error.
+            const { data: after } = await _supabase.from("friends")
+                .select("id,user_id,friend_id,status")
+                .or(`and(user_id.eq.${currentUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUser.id})`)
+                .limit(1);
+
+            if (after?.length) {
+                const row = after[0];
+                if (row.status === "accepted") return alert("You are already friends.");
+                if (row.user_id === currentUser.id && row.friend_id === friendId && row.status === "pending") {
+                    await refreshNotifications();
+                    await loadFriends();
+                    const hs = document.getElementById("homeUserSearch");
+                    if (hs?.value.trim()) await searchHomeUsers(hs.value);
+                    return alert("Friend request already sent.");
+                }
+            }
+
+            return alert("Could not send request: " + error.message);
+        }
+
+        await _supabase.channel(`user-events:${friendId}`).send({
+            type:"broadcast",
+            event:"friend_request",
+            payload:{request:created || {user_id:currentUser.id,friend_id:friendId,status:"pending"}}
+        });
+
+        await refreshNotifications();
+        await loadFriends();
+
+        const homeSearch = document.getElementById("homeUserSearch");
+        if (homeSearch?.value.trim()) await searchHomeUsers(homeSearch.value);
+
+        const friendSearch = document.getElementById("friendSearchInput");
+        if (friendSearch?.value.trim()) await searchUsers(friendSearch.value);
+
+        alert("Friend request sent.");
+    } finally {
+        // Search results may have been re-rendered, so do not rely on the old button nodes.
+        document.querySelectorAll('[data-friend-request-sending="1"]').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = "";
+            btn.style.pointerEvents = "";
+            btn.removeAttribute("data-friend-request-sending");
+        });
+    }
 }
 
 async function respondFriendRequest(
     requestId,
     status
 ) {
+    if (!currentUser) return;
 
-    const { error } =
+    // Kunin muna ang request para alam natin kung sino ang requester.
+    const { data: request, error: requestError } =
         await _supabase
             .from("friends")
-            .update({status})
-            .eq("id",requestId)
-            .eq("friend_id",currentUser.id);
+            .select("id,user_id,friend_id,status")
+            .eq("id", requestId)
+            .eq("friend_id", currentUser.id)
+            .maybeSingle();
 
+    if (requestError)
+        return alert("Could not load friend request: " + requestError.message);
+
+    if (!request)
+        return alert("Friend request not found or already processed.");
+
+    const { data: updated, error } =
+        await _supabase
+            .from("friends")
+            .update({ status })
+            .eq("id", requestId)
+            .eq("friend_id", currentUser.id)
+            .select("id,user_id,friend_id,status,created_at")
+            .maybeSingle();
 
     if (error)
-        return alert(error.message);
+        return alert("Could not update friend request: " + error.message);
 
+    // Broadcast agad sa requester para hindi na niya kailangang maghintay
+    // sa polling. Realtime UPDATE listener ang backup nito.
+    if (updated && request.user_id) {
+        await _supabase.channel(`user-events:${request.user_id}`).send({
+            type: "broadcast",
+            event: "friend_status",
+            payload: { request: updated }
+        });
+    }
 
     await loadFriends();
     await refreshNotifications();
@@ -4256,7 +4393,7 @@ function showRealtimeNotification(title, message, userId=null, displayName=null)
 async function setupChatRealtime(){
     if(chatChannel){_supabase.removeChannel(chatChannel);chatChannel=null;}
     if(userEventChannel){_supabase.removeChannel(userEventChannel);userEventChannel=null;}
-    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`).on("broadcast",{event:"new_message"},async({payload})=>{const m=payload?.message;if(!m||m.recipient_id!==currentUser.id)return;const name=payload.senderName||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else{realtimeMessageNotifications=[{userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id},...realtimeMessageNotifications.filter(x=>x.messageId!==m.id)];updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("broadcast",{event:"friend_request"},async({payload})=>{const r=payload?.request;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).subscribe(status=>console.log("User events realtime:",status));
+    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`).on("broadcast",{event:"new_message"},async({payload})=>{const m=payload?.message;if(!m||m.recipient_id!==currentUser.id)return;const name=payload.senderName||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else{realtimeMessageNotifications=[{userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id},...realtimeMessageNotifications.filter(x=>x.messageId!==m.id)];updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("broadcast",{event:"friend_request"},async({payload})=>{const r=payload?.request;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).on("broadcast",{event:"friend_status"},async({payload})=>{const r=payload?.request;if(!r)return;if(r.user_id!==currentUser.id && r.friend_id!==currentUser.id)return;await loadFriends();await refreshNotifications();await renderContacts();}).subscribe(status=>console.log("User events realtime:",status));
     chatChannel=_supabase.channel(`direct-messages:${currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`recipient_id=eq.${currentUser.id}`},async payload=>{const m=payload.new;if(!m||m.recipient_id!==currentUser.id)return;const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();const name=p?.display_name||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{const m=payload.new||payload.old;if(!m||payload.eventType==="INSERT")return;const relevant=activeChatUser&&((m.user_id===currentUser.id&&m.recipient_id===activeChatUser.id)||(m.user_id===activeChatUser.id&&m.recipient_id===currentUser.id));if(relevant)await loadChatMessages();}).subscribe(status=>console.log("Message realtime:",status));
 }
 
