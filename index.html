@@ -634,6 +634,18 @@ header {
     margin-top:5px;
 }
 
+.vault-back-btn{margin-left:10px;background:transparent;border:1px solid #00f0ff55;color:#00f0ff;border-radius:4px;padding:3px 7px;font-size:8px;cursor:pointer;}
+.vault-back-btn:hover{box-shadow:0 0 8px #00f0ff55;}
+.folder-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 14px;}
+.folder-delete-btn{z-index:3;}
+@media(max-width:600px){
+    #path-display{width:100%;margin-left:0;margin-top:4px;}
+    .vault-actions{align-items:flex-start;}
+    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    .folder-card{min-height:105px;padding:8px;}
+    .folder-card>div:first-child{font-size:26px!important;}
+}
+
 .del-btn {
     position:absolute;
     top:5px;
@@ -1405,6 +1417,45 @@ input:checked + .slider:before {
 }
 
 /* =========================
+   BRANDING / RESPONSIVE POLISH
+========================= */
+.created-by{display:inline-block;margin-left:8px;font-size:7px;letter-spacing:1.2px;color:#6f7b86;vertical-align:middle;opacity:.9;}
+.created-by a{font-size:7px;font-weight:800;letter-spacing:1.4px;text-shadow:0 0 4px rgba(0,240,255,.7),0 0 9px rgba(0,240,255,.35);}
+
+/* STATUS COMMENTS / REACTIONS */
+.status-interactions{margin-top:10px;border-top:1px solid #222;padding-top:7px;}
+.status-action-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.status-action-btn{background:transparent;border:1px solid #303640;color:#aaa;border-radius:12px;padding:4px 9px;font-size:9px;cursor:pointer;}
+.status-action-btn:hover{border-color:#00f0ff;color:#00f0ff;}
+.status-reaction-picker{display:none;gap:3px;background:#11151b;border:1px solid #00f0ff55;border-radius:14px;padding:3px;box-shadow:0 5px 18px rgba(0,0,0,.5);}
+.status-reaction-picker.open{display:flex;}
+.status-reaction-picker button{background:transparent;border:0;padding:3px 4px;font-size:15px;cursor:pointer;border-radius:8px;}
+.status-reaction-picker button:hover{background:#00f0ff15;transform:scale(1.12);}
+.status-reaction-summary{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.status-reaction-chip{background:#161a21;border:1px solid #303640;border-radius:10px;padding:2px 6px;color:#bbb;font-size:8px;cursor:pointer;}
+.status-reaction-chip.mine{border-color:#00f0ff;color:#fff;}
+.status-comments{margin-top:7px;display:flex;flex-direction:column;gap:5px;}
+.status-comment{display:flex;gap:6px;background:#11151b;border:1px solid #20252d;border-radius:5px;padding:6px;}
+.status-comment-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;flex:none;background:#222;display:flex;align-items:center;justify-content:center;font-size:8px;color:#00f0ff;}
+.status-comment-body{min-width:0;flex:1;}
+.status-comment-head{display:flex;justify-content:space-between;gap:8px;}
+.status-comment-name{font-size:9px;font-weight:bold;color:#fff;}
+.status-comment-time{font-size:7px;color:#666;}
+.status-comment-text{font-size:9px;color:#ccc;margin-top:2px;word-break:break-word;}
+.status-comment-delete{background:transparent;border:0;color:#555;font-size:9px;cursor:pointer;}
+.status-comment-delete:hover{color:#ff4a4a;}
+.status-comment-form{display:none;gap:5px;margin-top:6px;}
+.status-comment-form.open{display:flex;}
+.status-comment-input{flex:1;min-width:0;background:#0d0f12;border:1px solid #333;color:#fff;border-radius:12px;padding:6px 9px;font-size:9px;outline:none;}
+.status-comment-input:focus{border-color:#00f0ff;}
+.status-comment-send{background:transparent;border:1px solid #00f0ff;color:#00f0ff;border-radius:12px;padding:4px 9px;font-size:8px;cursor:pointer;}
+
+.folder-card{min-width:0;}
+.folder-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.folder-delete-btn{position:absolute;top:5px;right:5px;}
+.vault-back-btn{display:none;}
+
+/* =========================
    RESPONSIVE
 ========================= */
 
@@ -1523,6 +1574,20 @@ input:checked + .slider:before {
         text-overflow:ellipsis;
     }
 }
+
+@media(max-width:600px){
+    .home-user-search{width:100%;max-width:100%;}
+    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    .folder-card{min-height:105px;padding:9px;}
+    .card{padding:8px;}
+    .card img,.card video{height:105px;}
+    .created-by{display:block;margin-left:0;margin-top:2px;font-size:6px;}
+    .created-by a{font-size:6px;}
+    .status-action-row{gap:4px;}
+    .status-action-btn{padding:4px 7px;}
+    .status-reaction-picker button{font-size:14px;}
+}
+
 </style>
 
 </head>
@@ -1595,7 +1660,7 @@ input:checked + .slider:before {
         <a href="https://www.facebook.com/erald.dalit"
            target="_blank"
            rel="noopener noreferrer"
-           style="color:#00f0ff;text-decoration:none;">
+           class="created-by-link" style="color:#00f0ff;text-decoration:none;">
            DLARE
         </a>
     </span>
@@ -2486,7 +2551,20 @@ function switchPage(pageName) {
         .getElementById(`nav-${pageName}`)
         ?.classList.add("active");
 
+    // Vault navigation is profile-scoped. When leaving the Profile page,
+    // return the Vault to MAIN VAULT so that reopening Profile always shows
+    // the user's folders first instead of dropping directly into the last
+    // opened folder and showing its media.
+    if (pageName !== "profile") {
+        currentFolderId = null;
+        currentFolderName = "";
+        updateVaultPath();
+    }
+
     if (pageName === "profile") {
+        currentFolderId = null;
+        currentFolderName = "";
+        updateVaultPath();
         loadGallery();
     }
 
@@ -2574,6 +2652,14 @@ async function handleAuthSubmit() {
 }
 
 
+function setupStatusInteractionsRealtime(){
+    if(window.statusInteractionChannel){_supabase.removeChannel(window.statusInteractionChannel);window.statusInteractionChannel=null;}
+    window.statusInteractionChannel=_supabase.channel(`status-interactions:${currentUser.id}`)
+        .on("postgres_changes",{event:"*",schema:"public",table:"post_comments"},()=>loadStatuses())
+        .on("postgres_changes",{event:"*",schema:"public",table:"post_reactions"},()=>loadStatuses())
+        .subscribe(status=>console.log("Status interactions realtime:",status));
+}
+
 async function handleAuthSuccess(user) {
 
     currentUser = user;
@@ -2594,6 +2680,7 @@ async function handleAuthSuccess(user) {
     setupCallRealtime();
     setupPresenceRealtime();
     setupFriendRequestRealtime();
+    setupStatusInteractionsRealtime();
 
     await loadStatuses();
     await loadFriends();
@@ -2940,126 +3027,66 @@ async function createStatus(source) {
 
 
 async function loadStatuses() {
-
     if (!currentUser) return;
+    const {data,error}=await _supabase.from("status_posts").select("*").order("created_at",{ascending:false}).limit(50);
+    if(error){
+        const msg='<div class="status-empty">STATUS FEED NEEDS SUPABASE SETUP</div>';
+        document.getElementById("home-feed").innerHTML=msg; document.getElementById("profile-feed").innerHTML=msg; return;
+    }
+    const posts=data||[];
+    const ids=[...new Set(posts.map(x=>x.user_id))];
+    let profiles={};
+    if(ids.length){const {data:ps}=await _supabase.from("profiles").select("id,display_name,avatar_url").in("id",ids);(ps||[]).forEach(p=>profiles[p.id]=p);}
 
-
-    const { data, error } =
-        await _supabase
-            .from("status_posts")
-            .select("*")
-            .order(
-                "created_at",
-                { ascending:false }
-            )
-            .limit(50);
-
-
-    if (error) {
-
-        const msg =
-            '<div class="status-empty">STATUS FEED NEEDS SUPABASE SETUP</div>';
-
-        document.getElementById("home-feed")
-            .innerHTML = msg;
-
-        document.getElementById("profile-feed")
-            .innerHTML = msg;
-
-        return;
+    let commentsByPost={}, reactionsByPost={};
+    const postIds=posts.map(p=>p.id).filter(Boolean);
+    if(postIds.length){
+        const [cr,rr]=await Promise.all([
+            _supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id",postIds).order("created_at",{ascending:true}),
+            _supabase.from("post_reactions").select("id,post_id,user_id,reaction,created_at").in("post_id",postIds)
+        ]);
+        (cr.data||[]).forEach(c=>(commentsByPost[c.post_id]??=[]).push(c));
+        (rr.data||[]).forEach(r=>(reactionsByPost[r.post_id]??=[]).push(r));
+        const commentUserIds=[...(cr.data||[]).map(x=>x.user_id),...(rr.data||[]).map(x=>x.user_id)];
+        const missing=[...new Set(commentUserIds)].filter(id=>id&&!profiles[id]);
+        if(missing.length){const {data:ps}=await _supabase.from("profiles").select("id,display_name,avatar_url").in("id",missing);(ps||[]).forEach(p=>profiles[p.id]=p);}
     }
 
-
-    const ids =
-        [...new Set(
-            (data || [])
-                .map(x => x.user_id)
-        )];
-
-
-    let profiles = {};
-
-
-    if (ids.length) {
-
-        const { data:ps } =
-            await _supabase
-                .from("profiles")
-                .select(
-                    "id,display_name,avatar_url"
-                )
-                .in("id",ids);
-
-        (ps || []).forEach(
-            p => profiles[p.id] = p
-        );
-    }
-
-
-    const html =
-        (data || [])
-        .map(post => {
-
-            const p =
-                profiles[post.user_id] || {};
-
-            const name =
-                p.display_name || "MEMBER";
-
-            const avatar =
-                p.avatar_url
-                ? `<img class="status-avatar" src="${p.avatar_url}">`
-                : `<div class="status-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div>`;
-
-            const mine =
-                post.user_id === currentUser.id;
-
-            return `
-            <article class="status-card">
-
-                <div class="status-author">
-
-                    ${avatar}
-
-                    <div>
-                        <b>${escapeHtml(name)}</b>
-                        <small>
-                            ${new Date(post.created_at).toLocaleString()}
-                        </small>
-                    </div>
-
-                </div>
-
-                <div class="status-content">
-                    ${escapeHtml(post.content)
-                        .replace(/\n/g,"<br>")}
-                </div>
-
-                ${
-                    mine
-                    ? `<button class="status-delete"
-                              onclick="deleteStatus('${post.id}')">
-                            ✕
-                       </button>`
-                    : ""
-                }
-
-            </article>
-            `;
-
-        })
-        .join("")
-        ||
-        '<div class="status-empty">NO STATUS YET</div>';
-
-
-    document.getElementById("home-feed")
-        .innerHTML = html;
-
-    document.getElementById("profile-feed")
-        .innerHTML = html;
+    const emojis=["❤️","👍","😂","😮","😢","🔥"];
+    const html=posts.map(post=>{
+        const p=profiles[post.user_id]||{}; const name=p.display_name||"MEMBER";
+        const avatar=p.avatar_url?`<img class="status-avatar" src="${p.avatar_url}">`:`<div class="status-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div>`;
+        const mine=post.user_id===currentUser.id;
+        const rs=reactionsByPost[post.id]||[]; const cs=commentsByPost[post.id]||[];
+        const counts={}; rs.forEach(r=>counts[r.reaction]=(counts[r.reaction]||0)+1);
+        const myReaction=rs.find(r=>r.user_id===currentUser.id)?.reaction||"";
+        const summary=Object.entries(counts).map(([e,n])=>`<button class="status-reaction-chip ${myReaction===e?"mine":""}" onclick="togglePostReaction('${post.id}','${e}')">${e} ${n}</button>`).join("");
+        const comments=cs.map(c=>{const cp=profiles[c.user_id]||{};const cn=cp.display_name||"MEMBER";const ca=cp.avatar_url?`<img class="status-comment-avatar" src="${cp.avatar_url}">`:`<div class="status-comment-avatar">${escapeHtml(cn.charAt(0).toUpperCase())}</div>`;return `<div class="status-comment">${ca}<div class="status-comment-body"><div class="status-comment-head"><span class="status-comment-name">${escapeHtml(cn)}</span><span class="status-comment-time">${new Date(c.created_at).toLocaleString()}</span>${c.user_id===currentUser.id?`<button class="status-comment-delete" onclick="deletePostComment('${c.id}')">✕</button>`:""}</div><div class="status-comment-text">${escapeHtml(c.content).replace(/\n/g,"<br>")}</div></div></div>`;}).join("");
+        return `<article class="status-card" id="status-${post.id}"><div class="status-author">${avatar}<div><b>${escapeHtml(name)}</b><small>${new Date(post.created_at).toLocaleString()}</small></div></div><div class="status-content">${escapeHtml(post.content).replace(/\n/g,"<br>")}</div>${mine?`<button class="status-delete" onclick="deleteStatus('${post.id}')">✕</button>`:""}<div class="status-interactions"><div class="status-action-row"><button class="status-action-btn" onclick="toggleStatusReactionPicker('${post.id}')">${myReaction||"😀"} REACT</button><div id="reaction-picker-${post.id}" class="status-reaction-picker">${emojis.map(e=>`<button onclick="togglePostReaction('${post.id}','${e}')">${e}</button>`).join("")}</div><button class="status-action-btn" onclick="toggleStatusComments('${post.id}')">💬 COMMENT${cs.length?` (${cs.length})`:""}</button></div>${summary?`<div class="status-reaction-summary">${summary}</div>`:""}<div id="comments-${post.id}" class="status-comments">${comments}</div><div id="comment-form-${post.id}" class="status-comment-form"><input id="comment-input-${post.id}" class="status-comment-input" maxlength="1000" placeholder="Write a comment..."><button class="status-comment-send" onclick="addPostComment('${post.id}')">POST</button></div></div></article>`;
+    }).join("")||'<div class="status-empty">NO STATUS YET</div>';
+    document.getElementById("home-feed").innerHTML=html; document.getElementById("profile-feed").innerHTML=html;
 }
 
+function toggleStatusReactionPicker(postId){document.getElementById(`reaction-picker-${postId}`)?.classList.toggle("open");}
+function toggleStatusComments(postId){document.getElementById(`comment-form-${postId}`)?.classList.toggle("open");document.getElementById(`comment-input-${postId}`)?.focus();}
+
+async function togglePostReaction(postId,reaction){
+    const {data:existing,error:readError}=await _supabase.from("post_reactions").select("id,reaction").eq("post_id",postId).eq("user_id",currentUser.id).maybeSingle();
+    if(readError) return alert("Reaction setup error: "+readError.message);
+    if(existing?.reaction===reaction){const {error}=await _supabase.from("post_reactions").delete().eq("id",existing.id);if(error)return alert(error.message);}
+    else if(existing){const {error}=await _supabase.from("post_reactions").update({reaction}).eq("id",existing.id);if(error)return alert(error.message);}
+    else {const {error}=await _supabase.from("post_reactions").insert([{post_id:postId,user_id:currentUser.id,reaction}]);if(error)return alert(error.message);}
+    await loadStatuses();
+}
+
+async function addPostComment(postId){
+    const input=document.getElementById(`comment-input-${postId}`); const content=input?.value.trim(); if(!content)return;
+    const {error}=await _supabase.from("post_comments").insert([{post_id:postId,user_id:currentUser.id,content}]);
+    if(error)return alert("Could not post comment: "+error.message);
+    await loadStatuses();
+    const form=document.getElementById(`comment-form-${postId}`);form?.classList.add("open");
+}
+async function deletePostComment(id){if(!confirm("Delete this comment?"))return;const {error}=await _supabase.from("post_comments").delete().eq("id",id).eq("user_id",currentUser.id);if(error)return alert(error.message);await loadStatuses();}
 
 async function deleteStatus(id) {
 
@@ -3085,335 +3112,219 @@ async function deleteStatus(id) {
 ========================= */
 
 function switchMediaTab(type) {
-
+    // Keep the current folder when switching between Photos and Videos.
     currentMediaType = type;
-
-    document.getElementById("tab-photos")
-        .classList.toggle(
-            "active",
-            type === "photo"
-        );
-
-    document.getElementById("tab-videos")
-        .classList.toggle(
-            "active",
-            type === "video"
-        );
-
+    document.getElementById("tab-photos")?.classList.toggle("active", type === "photo");
+    document.getElementById("tab-videos")?.classList.toggle("active", type === "video");
     loadGallery();
 }
 
+// Vault UI state is kept locally so a slow Realtime/query response cannot make
+// a newly-created folder disappear from the screen.
+let vaultFoldersCache = {};
+let vaultGalleryRequest = 0;
+let currentFolderName = "";
+
+function vaultFolderCacheKey(parentId) {
+    return `${currentUser?.id || ""}::${parentId || "ROOT"}`;
+}
+
+function updateVaultPath() {
+    const path = document.getElementById("path-display");
+    if (!path) return;
+    if (currentFolderId) {
+        path.innerHTML = `📍 SECTOR: <b>${escapeHtml((currentFolderName || "FOLDER").toUpperCase())}</b>
+            <button class="vault-back-btn" type="button" onclick="goToParentFolder()">↩ BACK</button>`;
+    } else {
+        path.innerHTML = `📍 SECTOR: <b>MAIN VAULT</b>`;
+    }
+}
 
 async function loadGallery() {
+    const gallery = document.getElementById("gallery");
+    if (!gallery || !currentUser) return;
 
-    const gallery =
-        document.getElementById("gallery");
+    const requestId = ++vaultGalleryRequest;
+    const folderIdAtStart = currentFolderId;
+    const mediaTypeAtStart = currentMediaType;
+    const cacheKey = vaultFolderCacheKey(folderIdAtStart);
+    const cachedFolders = vaultFoldersCache[cacheKey] || [];
 
-    gallery.innerHTML =
-        '<div style="grid-column:1/-1;text-align:center;color:#777;font-size:11px;">LOADING VAULT...</div>';
+    gallery.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#777;font-size:11px;">LOADING VAULT...</div>';
 
+    let folderQuery = _supabase.from("folders").select("*").eq("user_id",currentUser.id);
+    folderQuery = folderIdAtStart
+        ? folderQuery.eq("parent_id",folderIdAtStart)
+        : folderQuery.is("parent_id",null);
 
-    let folderQuery =
-        _supabase
-            .from("folders")
-            .select("*")
-            .eq("user_id",currentUser.id);
+    const {data:folders,error:folderError} = await folderQuery.order("created_at",{ascending:true});
 
+    // Ignore stale responses. This is the important fix for the folder
+    // disappearing after an upload/tab switch.
+    if (requestId !== vaultGalleryRequest || folderIdAtStart !== currentFolderId || mediaTypeAtStart !== currentMediaType) return;
 
-    folderQuery =
-        currentFolderId
-        ? folderQuery.eq(
-            "parent_id",
-            currentFolderId
-        )
-        : folderQuery.is(
-            "parent_id",
-            null
-        );
+    let visibleFolders = folders || [];
+    if (!folderError) {
+        vaultFoldersCache[cacheKey] = visibleFolders;
+    } else if (cachedFolders.length) {
+        visibleFolders = cachedFolders;
+    }
 
+    let mediaQuery = _supabase.from("memories").select("*").eq("user_id",currentUser.id);
+    mediaQuery = folderIdAtStart
+        ? mediaQuery.eq("folder_id",folderIdAtStart)
+        : mediaQuery.is("folder_id",null);
 
-    const { data:folders } =
-        await folderQuery;
+    const {data:memories,error:mediaError} = await mediaQuery.order("created_at",{ascending:false});
 
-
-    let mediaQuery =
-        _supabase
-            .from("memories")
-            .select("*")
-            .eq("user_id",currentUser.id);
-
-
-    mediaQuery =
-        currentFolderId
-        ? mediaQuery.eq(
-            "folder_id",
-            currentFolderId
-        )
-        : mediaQuery.is(
-            "folder_id",
-            null
-        );
-
-
-    const { data:memories } =
-        await mediaQuery;
-
+    if (requestId !== vaultGalleryRequest || folderIdAtStart !== currentFolderId || mediaTypeAtStart !== currentMediaType) return;
 
     gallery.innerHTML = "";
 
-
-    if (folders?.length) {
-
-        folders.forEach(folder => {
-
-            const card =
-                document.createElement("div");
-
-            card.className =
-                "folder-card";
-
-            card.onclick =
-                () => openFolder(
-                    folder.id,
-                    folder.name
-                );
-
-            card.innerHTML = `
-                <div style="font-size:30px;margin-bottom:5px;">
-                    📁
-                </div>
-
-                <div style="font-size:11px;font-weight:bold;color:#00f0ff;">
-                    ${escapeHtml(folder.name)}
-                </div>
-
-                <button class="del-btn"
-                        onclick="event.stopPropagation();deleteFolder('${folder.id}')">
-                    ✕
-                </button>
-            `;
-
-            gallery.appendChild(card);
-        });
-    }
-
+    // Folders are rendered independently from the media tab. They therefore
+    // remain visible after uploading either a photo or a video.
+    visibleFolders.forEach(folder => {
+        const card = document.createElement("div");
+        card.className = "folder-card";
+        card.onclick = () => openFolder(folder.id,folder.name);
+        card.innerHTML = `
+            <div style="font-size:30px;margin-bottom:5px;">📁</div>
+            <div class="folder-title" style="font-size:11px;font-weight:bold;color:#00f0ff;" title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</div>
+            <button class="del-btn folder-delete-btn" title="Delete folder" onclick="event.stopPropagation();deleteFolder('${folder.id}')">✕</button>
+        `;
+        gallery.appendChild(card);
+    });
 
     let itemCounter = 0;
+    if (!mediaError) (memories || []).forEach(item => {
+        const isVideo = item.file_type?.startsWith("video");
+        if ((mediaTypeAtStart === "video" && !isVideo) || (mediaTypeAtStart === "photo" && isVideo)) return;
+        itemCounter++;
+        const card = document.createElement("div");
+        card.className = "card";
+        const mediaElement = isVideo
+            ? `<video src="${item.public_url}" onclick="openLightbox('${item.public_url}',true)"></video>`
+            : `<img src="${item.public_url}" onclick="openLightbox('${item.public_url}',false)">`;
+        card.innerHTML = `
+            ${mediaElement}
+            <button class="del-btn" onclick="deleteMemory('${item.id}','${item.storage_path}')">✕</button>
+            <input type="text" class="caption-input" value="${escapeHtml(item.caption || "")}" placeholder="Add caption..." onchange="updateCaption('${item.id}',this.value)">
+            <div class="media-date">${new Date(item.created_at || Date.now()).toLocaleDateString()}</div>
+        `;
+        gallery.appendChild(card);
+    });
 
-
-    if (memories?.length) {
-
-        memories.forEach(item => {
-
-            const isVideo =
-                item.file_type?.startsWith("video");
-
-            if (
-                (currentMediaType === "video" && !isVideo) ||
-                (currentMediaType === "photo" && isVideo)
-            ) return;
-
-
-            itemCounter++;
-
-
-            const card =
-                document.createElement("div");
-
-            card.className = "card";
-
-
-            const mediaElement =
-                isVideo
-                ? `<video src="${item.public_url}"
-                           onclick="openLightbox('${item.public_url}',true)">
-                   </video>`
-                : `<img src="${item.public_url}"
-                        onclick="openLightbox('${item.public_url}',false)">`;
-
-
-            card.innerHTML = `
-
-                ${mediaElement}
-
-                <button class="del-btn"
-                        onclick="deleteMemory('${item.id}','${item.storage_path}')">
-                    ✕
-                </button>
-
-                <input type="text"
-                       class="caption-input"
-                       value="${escapeHtml(item.caption || "")}"
-                       placeholder="Add caption..."
-                       onchange="updateCaption('${item.id}',this.value)">
-
-                <div class="media-date">
-                    ${new Date(item.created_at || Date.now()).toLocaleDateString()}
-                </div>
-
-            `;
-
-            gallery.appendChild(card);
-        });
+    if (mediaError) {
+        const err = document.createElement("div");
+        err.style.cssText="grid-column:1/-1;text-align:center;color:#ff4a4a;font-size:10px;padding:20px;";
+        err.textContent="MEDIA ERROR: " + mediaError.message;
+        gallery.appendChild(err);
     }
 
-
-    if (
-        (!folders?.length) &&
-        itemCounter === 0
-    ) {
-
-        gallery.innerHTML =
-            '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:30px;">NO MEDIA FOUND IN THIS SECTOR</div>';
+    if (!visibleFolders.length && itemCounter === 0 && !mediaError) {
+        gallery.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:30px;">NO MEDIA FOUND IN THIS SECTOR</div>';
     }
 }
-
 
 function openFolder(folderId,folderName) {
-
     currentFolderId = folderId;
-
-    document.getElementById("path-display")
-        .innerHTML =
-        `📍 SECTOR: <b>${
-            folderName
-            ? escapeHtml(folderName.toUpperCase())
-            : "MAIN VAULT"
-        }</b>`;
-
+    currentFolderName = folderName || "FOLDER";
+    updateVaultPath();
     loadGallery();
 }
 
+async function goToParentFolder() {
+    if (!currentFolderId || !currentUser) return;
+    const folderId = currentFolderId;
+    const {data,error} = await _supabase.from("folders").select("id,name,parent_id").eq("id",folderId).eq("user_id",currentUser.id).maybeSingle();
+    if (error) return alert("Could not open parent folder: " + error.message);
+    currentFolderId = data?.parent_id || null;
+    currentFolderName = "";
+    if (currentFolderId) {
+        const {data:parent} = await _supabase.from("folders").select("name").eq("id",currentFolderId).eq("user_id",currentUser.id).maybeSingle();
+        currentFolderName = parent?.name || "FOLDER";
+    }
+    updateVaultPath();
+    await loadGallery();
+}
 
 async function createFolder() {
+    const name = prompt("ENTER FOLDER NAME:");
+    if (!name?.trim() || !currentUser) return;
+    const clean = name.trim().slice(0,80);
+    const parentIdAtCreate = currentFolderId;
+    const {data,error} = await _supabase.from("folders")
+        .insert([{name:clean,parent_id:parentIdAtCreate,user_id:currentUser.id}])
+        .select("*").maybeSingle();
+    if (error) return alert("Could not create folder: " + error.message);
 
-    const name =
-        prompt("ENTER FOLDER NAME:");
-
-    if (!name?.trim()) return;
-
-
-    const { error } =
-        await _supabase
-            .from("folders")
-            .insert([{
-                name:name.trim(),
-                parent_id:currentFolderId,
-                user_id:currentUser.id
-            }]);
-
-
-    if (error)
-        return alert(error.message);
-
-    loadGallery();
+    // Optimistic cache update: the folder is visible immediately and cannot
+    // be erased by a slower query that was started before the INSERT.
+    const key = vaultFolderCacheKey(parentIdAtCreate);
+    const list = vaultFoldersCache[key] || [];
+    if (data && !list.some(f => f.id === data.id)) vaultFoldersCache[key] = [...list,data];
+    await loadGallery();
 }
-
 
 async function deleteFolder(id) {
+    if (!currentUser || !id) return;
+    if (!confirm("Delete this folder and all media/subfolders inside it?")) return;
 
-    if (!confirm("Delete folder?"))
-        return;
-
-    const { error } =
-        await _supabase
-            .from("folders")
-            .delete()
-            .eq("id",id);
-
-    if (error)
-        return alert(error.message);
-
-    loadGallery();
-}
-
-
-async function addMemories() {
-
-    const input =
-        document.getElementById("media-input");
-
-    const caption =
-        document.getElementById("caption-input")
-            .value.trim();
-
-    const button =
-        document.getElementById("upload-btn");
-
-    const status =
-        document.getElementById("upload-status");
-
-
-    if (!input.files.length)
-        return alert("Select files.");
-
-
-    button.disabled = true;
-    status.innerText = "UPLOADING...";
-
-
-    for (const file of input.files) {
-
-        const ext =
-            file.name.split(".").pop();
-
-        const path =
-            `${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-
-
-        const { error:uploadError } =
-            await _supabase
-                .storage
-                .from(BUCKET_NAME)
-                .upload(path,file);
-
-
-        if (uploadError) {
-
-            alert(
-                "Upload Failed: " +
-                uploadError.message
-            );
-
-            continue;
+    async function removeFolderTree(folderId){
+        const {data:kids,error:e}=await _supabase.from("folders").select("id").eq("user_id",currentUser.id).eq("parent_id",folderId);
+        if(e) throw e;
+        for(const kid of (kids||[])) await removeFolderTree(kid.id);
+        const {data:kmedia,error:me}=await _supabase.from("memories").select("id,storage_path").eq("user_id",currentUser.id).eq("folder_id",folderId);
+        if(me) throw me;
+        if(kmedia?.length){
+            const paths=kmedia.map(x=>x.storage_path).filter(Boolean);
+            if(paths.length) await _supabase.storage.from(BUCKET_NAME).remove(paths);
+            const {error:deMem}=await _supabase.from("memories").delete().eq("user_id",currentUser.id).eq("folder_id",folderId);
+            if(deMem) throw deMem;
         }
-
-
-        const { data } =
-            _supabase
-                .storage
-                .from(BUCKET_NAME)
-                .getPublicUrl(path);
-
-
-        const { error } =
-            await _supabase
-                .from("memories")
-                .insert([{
-                    user_id:currentUser.id,
-                    folder_id:currentFolderId,
-                    public_url:data.publicUrl,
-                    storage_path:path,
-                    file_type:file.type,
-                    caption
-                }]);
-
-
-        if (error)
-            alert(error.message);
+        const {error:de}=await _supabase.from("folders").delete().eq("id",folderId).eq("user_id",currentUser.id);
+        if(de) throw de;
     }
 
+    try { await removeFolderTree(id); } catch(e) { return alert("Could not delete folder: " + e.message); }
 
-    button.disabled = false;
+    Object.keys(vaultFoldersCache).forEach(k => {
+        vaultFoldersCache[k] = (vaultFoldersCache[k] || []).filter(f => f.id !== id);
+    });
+    if(currentFolderId === id) {
+        currentFolderId = null;
+        currentFolderName = "";
+        updateVaultPath();
+    }
+    await loadGallery();
+}
 
-    input.value = "";
+async function addMemories() {
+    const input=document.getElementById("media-input");
+    const caption=document.getElementById("caption-input").value.trim();
+    const button=document.getElementById("upload-btn");
+    const status=document.getElementById("upload-status");
+    if(!input.files.length) return alert("Select files.");
 
-    document.getElementById("caption-input")
-        .value = "";
-
-    status.innerText = "";
-
-    loadGallery();
+    // Freeze the destination folder for the whole upload operation. Switching
+    // tabs during upload can no longer change where the files are saved.
+    const uploadFolderId = currentFolderId;
+    button.disabled=true; status.innerText="UPLOADING...";
+    try {
+        for(const file of input.files){
+            const ext=file.name.split(".").pop();
+            const path=`${currentUser.id}/${uploadFolderId ? "folder_"+uploadFolderId+"/" : ""}${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+            const {error:uploadError}=await _supabase.storage.from(BUCKET_NAME).upload(path,file);
+            if(uploadError){alert("Upload Failed: "+uploadError.message);continue;}
+            const {data}=_supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+            const {error}=await _supabase.from("memories").insert([{user_id:currentUser.id,folder_id:uploadFolderId,public_url:data.publicUrl,storage_path:path,file_type:file.type,caption}]);
+            if(error){await _supabase.storage.from(BUCKET_NAME).remove([path]);alert("Could not save media: "+error.message);}
+        }
+    } finally {
+        button.disabled=false; input.value=""; document.getElementById("caption-input").value=""; status.innerText="";
+        // Stay in the same folder after upload and after changing Photos/Videos.
+        await loadGallery();
+    }
 }
 
 
@@ -4236,7 +4147,7 @@ function appendChatMessage(
             : `<div style="margin-top:5px;">
                     <a href="${msg.attachment_url}"
                        target="_blank"
-                       style="color:#00f0ff;text-decoration:none;">
+                       class="created-by-link" style="color:#00f0ff;text-decoration:none;">
                         📁 View Attachment
                     </a>
                </div>`;
