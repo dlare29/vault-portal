@@ -114,7 +114,7 @@ body {
 
 .portal-btn {
     width:100%;
-    padding:12px;
+    padding:4px;
     background:transparent;
     border:1px solid #00f0ff;
     color:#00f0ff;
@@ -314,6 +314,21 @@ header {
     width:min(760px,100%);
     margin:0 auto;
 }
+
+
+.home-search-nav-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.72fr);gap:14px;align-items:start;margin-bottom:14px;}
+.home-main-panel{min-width:0;}
+.home-user-search-panel{background:#161a21;border:1px solid #222;border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.18);padding:24px;min-height:100%;}
+.home-user-search{width:100%;background:#0d0f12;border:1px solid #333;color:#fff;padding:10px;border-radius:6px;outline:none;font-size:11px;}
+.home-user-results{margin-top:8px;}
+@media(max-width:700px){.home-search-nav-row{grid-template-columns:1fr;}}
+
+
+.vault-header-search{position:relative;flex:1;max-width:360px;margin:0 18px;}
+.vault-header-search .home-user-search{width:100%;max-width:none;}
+.vault-header-search .home-user-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:1000;}
+@media(max-width:900px){.vault-header-search{order:3;flex-basis:100%;max-width:none;margin:10px 0 0;}header{flex-wrap:wrap;}}
+@media(max-width:700px){.home-search-nav-row{display:block;}.home-main-panel{width:100%;}}
 
 /* =========================
    HOME
@@ -572,7 +587,7 @@ header {
 
 .gallery {
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
     gap:15px;
 }
 
@@ -581,7 +596,7 @@ header {
     background:#161a21;
     border:1px solid #222;
     border-radius:6px;
-    padding:12px;
+    padding:4px;
     position:relative;
     display:flex;
     flex-direction:column;
@@ -592,7 +607,7 @@ header {
     cursor:pointer;
     background:#13171f;
     justify-content:center;
-    min-height:130px;
+    min-height:39px;
 }
 
 .folder-card:hover,
@@ -642,7 +657,7 @@ header {
     #path-display{width:100%;margin-left:0;margin-top:4px;}
     .vault-actions{align-items:flex-start;}
     .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-    .folder-card{min-height:105px;padding:8px;}
+    .folder-card{min-height:0;padding:8px;}
     .folder-card>div:first-child{font-size:26px!important;}
 }
 
@@ -952,7 +967,7 @@ header {
     font-size:7px;
     color:#555;
     text-align:right;
-    margin-top:3px;
+    margin-top:5px;
 }
 
 .chat-attachment {
@@ -1448,7 +1463,7 @@ input:checked + .slider:before {
 .status-comment-form.open{display:flex;}
 .status-comment-input{flex:1;min-width:0;background:#0d0f12;border:1px solid #333;color:#fff;border-radius:12px;padding:6px 9px;font-size:9px;outline:none;}
 .status-comment-input:focus{border-color:#00f0ff;}
-.status-comment-send{background:transparent;border:1px solid #00f0ff;color:#00f0ff;border-radius:12px;padding:4px 9px;font-size:8px;cursor:pointer;}
+.status-comment-file{display:none!important;} .status-comment-attach{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid #333;border-radius:50%;color:#00f0ff;cursor:pointer;font-size:16px;flex:0 0 24px;} .status-comment-attach:hover{border-color:#00f0ff;background:#00f0ff15;} .status-comment-send{background:transparent;border:1px solid #00f0ff;color:#00f0ff;border-radius:12px;padding:4px 9px;font-size:8px;cursor:pointer;}
 
 .folder-card{min-width:0;}
 .folder-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1578,9 +1593,9 @@ input:checked + .slider:before {
 @media(max-width:600px){
     .home-user-search{width:100%;max-width:100%;}
     .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-    .folder-card{min-height:105px;padding:9px;}
+    .folder-card{min-height:0;padding:8px;}
     .card{padding:8px;}
-    .card img,.card video{height:105px;}
+    .card img,.card video{height:180px;}
     .created-by{display:block;margin-left:0;margin-top:2px;font-size:6px;}
     .created-by a{font-size:6px;}
     .status-action-row{gap:4px;}
@@ -1588,8 +1603,69 @@ input:checked + .slider:before {
     .status-reaction-picker button{font-size:14px;}
 }
 
+
+/* FOLDER PREVIEW / COMPACT GLASS STYLE */
+.folder-card {
+    position:relative;
+    min-height:0 !important;
+    height:auto !important;
+    padding:7px !important;
+    background:rgba(255,255,255,0.018) !important;
+    border:1px solid rgba(255,255,255,0.9) !important;
+    border-radius:4px !important;
+    box-shadow:0 0 6px rgba(255,255,255,0.65), inset 0 0 10px rgba(255,255,255,0.035) !important;
+    transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.folder-card:hover {
+    transform:translateY(-2px);
+    background:rgba(255,255,255,0.05) !important;
+    box-shadow:0 0 10px rgba(255,255,255,0.95),0 0 22px rgba(255,255,255,0.28),inset 0 0 12px rgba(255,255,255,0.05) !important;
+}
+.folder-preview {
+    width:100%;
+    aspect-ratio:1/1;
+    overflow:hidden;
+    background:rgba(255,255,255,0.018);
+    border:1px solid rgba(255,255,255,0.22);
+    border-radius:3px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.folder-preview-media {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+.folder-preview-empty {
+    font-size:7px;
+    letter-spacing:1px;
+    color:#666;
+}
+.folder-card .folder-title {
+    width:100%;
+    box-sizing:border-box;
+    margin-top:5px;
+    padding:0 2px !important;
+    font-size:9px !important;
+    font-weight:bold;
+    color:#00f0ff;
+    text-align:center;
+    text-shadow:0 0 6px rgba(255,255,255,0.28);
+}
+.folder-card .folder-delete-btn {z-index:3;top:3px;right:3px;width:17px;height:17px;font-size:8px;}
 </style>
 
+
+<style id="status-media-upload-fix">
+.status-file-input{display:none!important}
+.status-upload-btn{min-width:76px}
+.status-selected-file,.status-comment-file-name{font-size:8px;color:#00f0ff;min-height:10px;margin:3px 0 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-post-media{display:block;max-width:min(420px,100%);max-height:360px;margin:8px 0;border-radius:8px;border:1px solid #20252d;object-fit:contain;background:#0d0f12}
+.status-comment-media{display:block;max-width:min(320px,100%);max-height:260px;margin-top:6px;border-radius:7px;border:1px solid #20252d;object-fit:contain;background:#0d0f12}
+.status-comment-attach{user-select:none}
+</style>
 </head>
 
 <body>
@@ -1629,7 +1705,7 @@ input:checked + .slider:before {
         <label>PASSWORD</label>
         <input type="password"
                id="password"
-               placeholder="••••••••">
+               placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
     </div>
 
     <button class="portal-btn"
@@ -1653,7 +1729,7 @@ input:checked + .slider:before {
 <header>
 
 <div class="logo">
-    ● VAULT SYSTEM
+    â— VAULT SYSTEM
 
     <span class="created-by">
         CREATED BY
@@ -1666,18 +1742,25 @@ input:checked + .slider:before {
     </span>
 </div>
 
+<div class="vault-header-search">
+    <input id="homeUserSearch" class="home-user-search" type="text"
+           placeholder="ðŸ” Search any registered member by name..."
+           autocomplete="off" oninput="searchHomeUsers(this.value)">
+    <div id="homeUserSearchResults" class="home-user-results"></div>
+</div>
+
 <div class="top-nav">
 
     <button class="nav-link active"
             id="nav-home"
             onclick="switchPage('home')">
-        🏠 HOME
+        ðŸ  HOME
     </button>
 
     <button class="nav-link"
             id="nav-profile"
             onclick="switchPage('profile')">
-        👤 PROFILE / VAULT
+        ðŸ‘¤ PROFILE / VAULT
     </button>
 
     <div class="notification-wrap">
@@ -1685,7 +1768,7 @@ input:checked + .slider:before {
                 id="notificationButton"
                 onclick="toggleNotificationPanel()"
                 title="Friend requests">
-            🔔
+            ðŸ””
             <span id="notificationBadge" class="notification-badge">0</span>
         </button>
 
@@ -1699,12 +1782,12 @@ input:checked + .slider:before {
 
     <button class="nav-link"
             onclick="openSettings()">
-        ⚙️ SETTINGS
+        âš™ï¸ SETTINGS
     </button>
 
     <button class="nav-link"
             onclick="logout()">
-        🚪 LOGOUT
+        ðŸšª LOGOUT
     </button>
 
 </div>
@@ -1718,49 +1801,27 @@ input:checked + .slider:before {
 <div id="page-home"
      class="page-content social-page">
 
-<div class="home-card">
+<div class="home-main-panel">
 
-    <h1 id="welcome-heading">
-        Welcome back!
-    </h1>
-
-    <p>
-        System operational. Share a status and keep your Home
-        & Profile feed connected.
-    </p>
-
-</div>
-
-<div class="home-card user-search-card">
-    <div class="composer-title">SEARCH MEMBERS</div>
-    <input id="homeUserSearch" class="home-user-search" type="text"
-           placeholder="🔍 Search any registered member by name..."
-           autocomplete="off" oninput="searchHomeUsers(this.value)">
-    <div id="homeUserSearchResults" class="home-user-results"></div>
-</div>
-
-<div class="status-composer">
-
-    <div class="composer-title">
-        CREATE STATUS
+    <div class="home-card">
+        <h1 id="welcome-heading">Welcome back!</h1>
+        <p>System operational. Share a status and keep your Home &amp; Profile feed connected.</p>
     </div>
 
-    <textarea id="home-status-input"
-              rows="3"
-              placeholder="What's on your mind?"></textarea>
-
-    <div class="composer-actions">
-        <button class="btn"
-                onclick="createStatus('home')">
-            POST STATUS
-        </button>
+    <div class="status-composer">
+        <div class="composer-title">CREATE STATUS</div>
+        <textarea id="home-status-input" rows="3" placeholder="What's on your mind?"></textarea>
+        <input type="file" id="home-status-file" class="status-file-input" accept="image/*,video/*" onchange="showStatusFile('home',this)">
+        <div class="status-selected-file" id="home-status-file-name"></div>
+        <div class="composer-actions">
+            <button class="btn status-upload-btn" type="button" onclick="triggerStatusUpload('home')">UPLOAD</button>
+            <button class="btn" onclick="createStatus('home')">POST STATUS</button>
+        </div>
     </div>
 
 </div>
 
-<div id="home-feed"
-     class="status-feed">
-</div>
+<div id="home-feed" class="status-feed"></div>
 
 </div>
 
@@ -1782,12 +1843,12 @@ input:checked + .slider:before {
 
         <div id="profile-avatar-placeholder"
              class="profile-avatar-lg">
-            👤
+            ðŸ‘¤
         </div>
 
         <label for="avatar-file-input"
                class="avatar-upload-overlay">
-            📷
+            ðŸ“·
         </label>
 
         <input type="file"
@@ -1822,13 +1883,13 @@ input:checked + .slider:before {
     <button class="tab-btn active"
             id="tab-photos"
             onclick="switchMediaTab('photo')">
-        🖼️ PHOTOS
+        ðŸ–¼ï¸ PHOTOS
     </button>
 
     <button class="tab-btn"
             id="tab-videos"
             onclick="switchMediaTab('video')">
-        🎥 VIDEOS
+        ðŸŽ¥ VIDEOS
     </button>
 
 </div>
@@ -1838,11 +1899,11 @@ input:checked + .slider:before {
 
     <button class="btn"
             onclick="createFolder()">
-        📁 NEW FOLDER
+        ðŸ“ NEW FOLDER
     </button>
 
     <div id="path-display">
-        📍 SECTOR: <b>MAIN VAULT</b>
+        ðŸ“ SECTOR: <b>MAIN VAULT</b>
     </div>
 
 </div>
@@ -1886,13 +1947,12 @@ input:checked + .slider:before {
               rows="3"
               placeholder="Share a status on your profile..."></textarea>
 
+    <input type="file" id="profile-status-file" class="status-file-input" accept="image/*,video/*" onchange="showStatusFile('profile',this)">
+    <div class="status-selected-file" id="profile-status-file-name"></div>
+
     <div class="composer-actions">
-
-        <button class="btn"
-                onclick="createStatus('profile')">
-            POST STATUS
-        </button>
-
+        <button class="btn status-upload-btn" type="button" onclick="triggerStatusUpload('profile')">UPLOAD</button>
+        <button class="btn" onclick="createStatus('profile')">POST STATUS</button>
     </div>
 
 </div>
@@ -1920,7 +1980,7 @@ input:checked + .slider:before {
 
     <button class="panel-min-btn"
             onclick="toggleOnlinePanel()">
-        —
+        â€”
     </button>
 
 </div>
@@ -1930,14 +1990,14 @@ input:checked + .slider:before {
     <input id="friendSearchInput"
            class="contacts-search"
            type="text"
-           placeholder="🔍 Search users or friends..."
+           placeholder="ðŸ” Search users or friends..."
            oninput="searchUsers(this.value)">
 
     <div class="contacts-actions">
 
         <button class="btn"
                 onclick="loadFriends()">
-            ↻ REFRESH
+            â†» REFRESH
         </button>
 
     </div>
@@ -1963,22 +2023,22 @@ input:checked + .slider:before {
 
     <button class="icon-btn"
             onclick="startCall(false)">
-        📞
+        ðŸ“ž
     </button>
 
     <button class="icon-btn"
             onclick="startCall(true)">
-        📹
+        ðŸ“¹
     </button>
 
     <button class="icon-btn"
             onclick="minimizeChat()">
-        —
+        â€”
     </button>
 
     <button class="icon-btn"
             onclick="closeChat()">
-        ✕
+        âœ•
     </button>
 
 </div>
@@ -1992,18 +2052,18 @@ input:checked + .slider:before {
 <div id="emojiPicker"
      class="emoji-picker">
 
-    <span onclick="addEmoji('🥰')">🥰</span>
-    <span onclick="addEmoji('😘')">😘</span>
-    <span onclick="addEmoji('💖')">💖</span>
-    <span onclick="addEmoji('❤️')">❤️</span>
-    <span onclick="addEmoji('🥺')">🥺</span>
-    <span onclick="addEmoji('😍')">😍</span>
-    <span onclick="addEmoji('🌹')">🌹</span>
-    <span onclick="addEmoji('💑')">💑</span>
-    <span onclick="addEmoji('💗')">💗</span>
-    <span onclick="addEmoji('💌')">💌</span>
-    <span onclick="addEmoji('💋')">💋</span>
-    <span onclick="addEmoji('🤗')">🤗</span>
+    <span onclick="addEmoji('ðŸ¥°')">ðŸ¥°</span>
+    <span onclick="addEmoji('ðŸ˜˜')">ðŸ˜˜</span>
+    <span onclick="addEmoji('ðŸ’–')">ðŸ’–</span>
+    <span onclick="addEmoji('â¤ï¸')">â¤ï¸</span>
+    <span onclick="addEmoji('ðŸ¥º')">ðŸ¥º</span>
+    <span onclick="addEmoji('ðŸ˜')">ðŸ˜</span>
+    <span onclick="addEmoji('ðŸŒ¹')">ðŸŒ¹</span>
+    <span onclick="addEmoji('ðŸ’‘')">ðŸ’‘</span>
+    <span onclick="addEmoji('ðŸ’—')">ðŸ’—</span>
+    <span onclick="addEmoji('ðŸ’Œ')">ðŸ’Œ</span>
+    <span onclick="addEmoji('ðŸ’‹')">ðŸ’‹</span>
+    <span onclick="addEmoji('ðŸ¤—')">ðŸ¤—</span>
 
 </div>
 
@@ -2015,7 +2075,7 @@ input:checked + .slider:before {
 
     <button class="icon-btn"
             onclick="cancelReply()">
-        ✕
+        âœ•
     </button>
 
 </div>
@@ -2025,12 +2085,12 @@ input:checked + .slider:before {
 
     <button class="icon-btn"
             onclick="toggleEmojiPicker()">
-        🥰
+        ðŸ¥°
     </button>
 
     <button class="icon-btn"
             onclick="triggerFileSelect()">
-        📎
+        ðŸ“Ž
     </button>
 
     <input type="file"
@@ -2063,11 +2123,11 @@ input:checked + .slider:before {
 
     <h3 style="color:#00f0ff;margin-bottom:15px;font-size:15px;display:flex;justify-content:space-between;">
 
-        ⚙️ SYSTEM SETTINGS
+        âš™ï¸ SYSTEM SETTINGS
 
         <span onclick="closeSettings()"
               style="cursor:pointer;color:#888;">
-            ✕
+            âœ•
         </span>
 
     </h3>
@@ -2078,25 +2138,25 @@ input:checked + .slider:before {
         <button class="settings-tab active"
                 id="stab-account"
                 onclick="switchSettingsTab('account')">
-            👤 Account
+            ðŸ‘¤ Account
         </button>
 
         <button class="settings-tab"
                 id="stab-notifications"
                 onclick="switchSettingsTab('notifications')">
-            🔔 Notifications
+            ðŸ”” Notifications
         </button>
 
         <button class="settings-tab"
                 id="stab-appearance"
                 onclick="switchSettingsTab('appearance')">
-            🎨 Theme
+            ðŸŽ¨ Theme
         </button>
 
         <button class="settings-tab"
                 id="stab-privacy"
                 onclick="switchSettingsTab('privacy')">
-            🛡️ Privacy
+            ðŸ›¡ï¸ Privacy
         </button>
 
     </div>
@@ -2130,7 +2190,7 @@ input:checked + .slider:before {
 
         <div class="setting-label"
              style="margin-bottom:8px;color:#00f0ff;">
-            🔐 CHANGE PASSWORD
+            ðŸ” CHANGE PASSWORD
         </div>
 
 
@@ -2308,7 +2368,7 @@ input:checked + .slider:before {
 
     <span style="float:right;cursor:pointer;color:#888;"
           onclick="closeFriendProfile()">
-        ✕
+        âœ•
     </span>
 
     <div id="friendProfileContent"></div>
@@ -2410,13 +2470,13 @@ input:checked + .slider:before {
 
         <button class="btn call-btn"
                 onclick="acceptIncomingCall()">
-            📞 ACCEPT
+            ðŸ“ž ACCEPT
         </button>
 
         <button class="btn call-btn"
                 style="border-color:#ff4a4a;color:#ff4a4a;"
                 onclick="declineIncomingCall()">
-            ✕ DECLINE
+            âœ• DECLINE
         </button>
 
     </div>
@@ -2444,32 +2504,32 @@ input:checked + .slider:before {
 <div id="messageContextMenu">
 
 <button id="ctxReply">
-    ↩️ REPLY
+    â†©ï¸ REPLY
 </button>
 
 <button id="ctxReact">
-    😀 REACT
+    ðŸ˜€ REACT
 </button>
 
 <button id="ctxEdit">
-    ✏️ EDIT
+    âœï¸ EDIT
 </button>
 
 <button id="ctxDelete"
         class="danger">
-    🗑️ DELETE
+    ðŸ—‘ï¸ DELETE
 </button>
 
 </div>
 
 <div id="reactionPicker">
 
-<span>❤️</span>
-<span>👍</span>
-<span>😂</span>
-<span>😮</span>
-<span>😢</span>
-<span>🔥</span>
+<span>â¤ï¸</span>
+<span>ðŸ‘</span>
+<span>ðŸ˜‚</span>
+<span>ðŸ˜®</span>
+<span>ðŸ˜¢</span>
+<span>ðŸ”¥</span>
 
 </div>
 
@@ -2551,20 +2611,15 @@ function switchPage(pageName) {
         .getElementById(`nav-${pageName}`)
         ?.classList.add("active");
 
-    // Vault navigation is profile-scoped. When leaving the Profile page,
-    // return the Vault to MAIN VAULT so that reopening Profile always shows
-    // the user's folders first instead of dropping directly into the last
-    // opened folder and showing its media.
-    if (pageName !== "profile") {
+    // Leaving the Vault clears the open folder. Returning to Photos/Videos
+    // therefore always starts at the main/root level.
+    if (pageName !== "photos" && pageName !== "videos") {
         currentFolderId = null;
         currentFolderName = "";
         updateVaultPath();
     }
 
     if (pageName === "profile") {
-        currentFolderId = null;
-        currentFolderName = "";
-        updateVaultPath();
         loadGallery();
     }
 
@@ -2607,12 +2662,12 @@ async function handleAuthSubmit() {
 
     if (!email || !password) {
         return showLoginStatus(
-            "● ENTER EMAIL & PASSWORD",
+            "â— ENTER EMAIL & PASSWORD",
             "error"
         );
     }
 
-    showLoginStatus("● PROCESSING...", "normal");
+    showLoginStatus("â— PROCESSING...", "normal");
 
     const result =
         authMode === "signup"
@@ -2628,7 +2683,7 @@ async function handleAuthSubmit() {
     if (result.error) {
 
         return showLoginStatus(
-            "● ERROR: " +
+            "â— ERROR: " +
             result.error.message.toUpperCase(),
             "error"
         );
@@ -2644,7 +2699,7 @@ async function handleAuthSubmit() {
     } else {
 
         showLoginStatus(
-            "● CHECK EMAIL FOR CONFIRMATION",
+            "â— CHECK EMAIL FOR CONFIRMATION",
             "success"
         );
 
@@ -2983,89 +3038,179 @@ async function uploadProfilePicture(inputEl) {
 ========================= */
 
 async function createStatus(source) {
+    const input = document.getElementById(source === "home" ? "home-status-input" : "profile-status-input");
+    const fileInput = document.getElementById(`${source}-status-file`);
+    if (!input) return alert("Status box not found. Please refresh the page.");
+    const content = input.value.trim();
+    const file = fileInput?.files?.[0] || (window._statusFiles || {})[source] || null;
+    if (!content && !file) return alert("Write something or add a photo/video first.");
+    if (!currentUser?.id) return alert("Please log in again before posting.");
 
-    const input =
-        document.getElementById(
-            source === "home"
-            ? "home-status-input"
-            : "profile-status-input"
-        );
-
-    const content =
-        input.value.trim();
-
-    if (!content) {
-        return alert(
-            "Write something first."
-        );
+    let media_url = null, media_type = null, path = null;
+    if (file) {
+        const ext = (file.name.split(".").pop() || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
+        path = `${currentUser.id}/status/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await _supabase.storage.from(BUCKET_NAME).upload(path, file);
+        if (uploadError) return alert("Status media upload failed: " + uploadError.message);
+        media_url = _supabase.storage.from(BUCKET_NAME).getPublicUrl(path).data.publicUrl;
+        media_type = file.type || "";
     }
 
-
-    const { error } =
-        await _supabase
-            .from("status_posts")
-            .insert([{
-                user_id:currentUser.id,
-                content
-            }]);
-
-
+    const { data, error } = await _supabase.from("status_posts")
+        .insert([{ user_id: currentUser.id, content, media_url, media_type }])
+        .select("*").single();
     if (error) {
-
-        return alert(
-            "Could not post status.\n\n" +
-            error.message
-        );
-
+        if (path) await _supabase.storage.from(BUCKET_NAME).remove([path]);
+        if (/media_url|media_type|column/i.test(error.message || "")) {
+            return alert("Status photo/video needs the Supabase SQL migration.\n\n" + error.message);
+        }
+        return alert("Could not post status.\n\n" + error.message);
     }
-
 
     input.value = "";
+    if (fileInput) fileInput.value = "";
+    if (window._statusFiles) delete window._statusFiles[source];
+    const out = document.getElementById(`${source}-status-file-name`);
+    if (out) out.textContent = "";
 
-    await loadStatuses();
+    const post = data || { id: "local-" + Date.now(), user_id: currentUser.id, content, media_url, media_type, created_at: new Date().toISOString() };
+    const card = renderStatusCard(post, currentProfile || {}, {}, {}, {});
+    [document.getElementById("home-feed"), document.getElementById("profile-feed")].forEach(feed => {
+        if (!feed) return;
+        feed.querySelector(".status-empty")?.remove();
+        feed.insertAdjacentHTML("afterbegin", card);
+    });
+    loadStatuses().catch(err => console.error("Status refresh error:", err));
 }
 
+function renderStatusCard(post, profile, commentsByPost, reactionsByPost, profiles) {
+    const p = profile || profiles[post.user_id] || {};
+    const name = p.display_name || (post.user_id === currentUser?.id ? "YOU" : "MEMBER");
+    const avatar = p.avatar_url
+        ? `<img class="status-avatar" src="${escapeHtml(p.avatar_url)}" alt="">`
+        : `<div class="status-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div>`;
+    const mine = post.user_id === currentUser?.id;
+    const rs = reactionsByPost[post.id] || [];
+    const cs = commentsByPost[post.id] || [];
+    const counts = {};
+    rs.forEach(r => { counts[r.reaction] = (counts[r.reaction] || 0) + 1; });
+    const myReaction = rs.find(r => r.user_id === currentUser?.id)?.reaction || "";
+    const emojis = ["â¤ï¸", "ðŸ‘", "ðŸ˜‚", "ðŸ˜®", "ðŸ˜¢", "ðŸ”¥"];
+    const summary = Object.entries(counts)
+        .map(([e,n]) => `<button class="status-reaction-chip ${myReaction === e ? "mine" : ""}" onclick="togglePostReaction('${post.id}','${e}')">${e} ${n}</button>`)
+        .join("");
+    const statusMedia = post.media_url
+        ? ((post.media_type || "").startsWith("video/")
+            ? `<video class="status-post-media" controls preload="metadata" src="${escapeHtml(post.media_url)}"></video>`
+            : `<img class="status-post-media" loading="lazy" src="${escapeHtml(post.media_url)}" alt="Status photo">`)
+        : "";
+    const comments = cs.map(c => {
+        const cp = profiles[c.user_id] || {};
+        const cn = cp.display_name || "MEMBER";
+        const ca = cp.avatar_url
+            ? `<img class="status-comment-avatar" src="${escapeHtml(cp.avatar_url)}" alt="">`
+            : `<div class="status-comment-avatar">${escapeHtml(cn.charAt(0).toUpperCase())}</div>`;
+        const commentMedia = c.media_url
+            ? ((c.media_type || "").startsWith("video/")
+                ? `<video class="status-comment-media" controls preload="metadata" src="${escapeHtml(c.media_url)}"></video>`
+                : `<img class="status-comment-media" loading="lazy" src="${escapeHtml(c.media_url)}" alt="Comment photo">`)
+            : "";
+        return `<div class="status-comment">${ca}<div class="status-comment-body"><div class="status-comment-head"><span class="status-comment-name">${escapeHtml(cn)}</span><span class="status-comment-time">${new Date(c.created_at).toLocaleString()}</span>${c.user_id === currentUser?.id ? `<button class="status-comment-delete" onclick="deletePostComment('${c.id}')">âœ•</button>` : ""}</div><div class="status-comment-text">${escapeHtml(c.content || "").replace(/\n/g,"<br>")}</div>${commentMedia}</div></div>`;
+    }).join("");
+
+    return `<article class="status-card" id="status-${post.id}">
+        <div class="status-author">${avatar}<div><b>${escapeHtml(name)}</b><small>${post.created_at ? new Date(post.created_at).toLocaleString() : "Just now"}</small></div></div>
+        <div class="status-content">${escapeHtml(post.content || "").replace(/\n/g,"<br>")}</div>
+        ${statusMedia}
+        ${mine ? `<button class="status-delete" onclick="deleteStatus('${post.id}')">âœ•</button>` : ""}
+        <div class="status-interactions">
+            <div class="status-action-row">
+                <button class="status-action-btn" onclick="toggleStatusReactionPicker('${post.id}')">${myReaction || "ðŸ˜€"} REACT</button>
+                <div id="reaction-picker-${post.id}" class="status-reaction-picker">${emojis.map(e => `<button onclick="togglePostReaction('${post.id}','${e}')">${e}</button>`).join("")}</div>
+                <button class="status-action-btn" onclick="toggleStatusComments('${post.id}')">ðŸ’¬ COMMENT${cs.length ? ` (${cs.length})` : ""}</button>
+            </div>
+            ${summary ? `<div class="status-reaction-summary">${summary}</div>` : ""}
+            <div id="comments-${post.id}" class="status-comments">${comments}</div>
+            <div id="comment-form-${post.id}" class="status-comment-form">
+                <input id="comment-input-${post.id}" class="status-comment-input" maxlength="1000" placeholder="Write a comment...">
+                <label class="status-comment-attach" title="Add photo or video">+<input id="comment-file-${post.id}" class="status-comment-file" type="file" accept="image/*,video/*" onchange="showCommentFile('${post.id}',this)"></label>
+                <span id="comment-file-name-${post.id}" class="status-comment-file-name"></span>
+                <button class="status-comment-send" onclick="addPostComment('${post.id}')">POST</button>
+            </div>
+        </div>
+    </article>`;
+}
 
 async function loadStatuses() {
-    if (!currentUser) return;
-    const {data,error}=await _supabase.from("status_posts").select("*").order("created_at",{ascending:false}).limit(50);
-    if(error){
-        const msg='<div class="status-empty">STATUS FEED NEEDS SUPABASE SETUP</div>';
-        document.getElementById("home-feed").innerHTML=msg; document.getElementById("profile-feed").innerHTML=msg; return;
-    }
-    const posts=data||[];
-    const ids=[...new Set(posts.map(x=>x.user_id))];
-    let profiles={};
-    if(ids.length){const {data:ps}=await _supabase.from("profiles").select("id,display_name,avatar_url").in("id",ids);(ps||[]).forEach(p=>profiles[p.id]=p);}
+    if (!currentUser?.id) return;
 
-    let commentsByPost={}, reactionsByPost={};
-    const postIds=posts.map(p=>p.id).filter(Boolean);
-    if(postIds.length){
-        const [cr,rr]=await Promise.all([
-            _supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id",postIds).order("created_at",{ascending:true}),
-            _supabase.from("post_reactions").select("id,post_id,user_id,reaction,created_at").in("post_id",postIds)
-        ]);
-        (cr.data||[]).forEach(c=>(commentsByPost[c.post_id]??=[]).push(c));
-        (rr.data||[]).forEach(r=>(reactionsByPost[r.post_id]??=[]).push(r));
-        const commentUserIds=[...(cr.data||[]).map(x=>x.user_id),...(rr.data||[]).map(x=>x.user_id)];
-        const missing=[...new Set(commentUserIds)].filter(id=>id&&!profiles[id]);
-        if(missing.length){const {data:ps}=await _supabase.from("profiles").select("id,display_name,avatar_url").in("id",missing);(ps||[]).forEach(p=>profiles[p.id]=p);}
+    const homeFeed = document.getElementById("home-feed");
+    const profileFeed = document.getElementById("profile-feed");
+    if (!homeFeed && !profileFeed) return;
+
+    const { data, error } = await _supabase
+        .from("status_posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+    if (error) {
+        console.error("STATUS LOAD ERROR:", error);
+        const msg = `<div class="status-empty">Unable to load statuses.<br><small>${escapeHtml(error.message)}</small></div>`;
+        if (homeFeed) homeFeed.innerHTML = msg;
+        if (profileFeed) profileFeed.innerHTML = msg;
+        return;
     }
 
-    const emojis=["❤️","👍","😂","😮","😢","🔥"];
-    const html=posts.map(post=>{
-        const p=profiles[post.user_id]||{}; const name=p.display_name||"MEMBER";
-        const avatar=p.avatar_url?`<img class="status-avatar" src="${p.avatar_url}">`:`<div class="status-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div>`;
-        const mine=post.user_id===currentUser.id;
-        const rs=reactionsByPost[post.id]||[]; const cs=commentsByPost[post.id]||[];
-        const counts={}; rs.forEach(r=>counts[r.reaction]=(counts[r.reaction]||0)+1);
-        const myReaction=rs.find(r=>r.user_id===currentUser.id)?.reaction||"";
-        const summary=Object.entries(counts).map(([e,n])=>`<button class="status-reaction-chip ${myReaction===e?"mine":""}" onclick="togglePostReaction('${post.id}','${e}')">${e} ${n}</button>`).join("");
-        const comments=cs.map(c=>{const cp=profiles[c.user_id]||{};const cn=cp.display_name||"MEMBER";const ca=cp.avatar_url?`<img class="status-comment-avatar" src="${cp.avatar_url}">`:`<div class="status-comment-avatar">${escapeHtml(cn.charAt(0).toUpperCase())}</div>`;return `<div class="status-comment">${ca}<div class="status-comment-body"><div class="status-comment-head"><span class="status-comment-name">${escapeHtml(cn)}</span><span class="status-comment-time">${new Date(c.created_at).toLocaleString()}</span>${c.user_id===currentUser.id?`<button class="status-comment-delete" onclick="deletePostComment('${c.id}')">✕</button>`:""}</div><div class="status-comment-text">${escapeHtml(c.content).replace(/\n/g,"<br>")}</div></div></div>`;}).join("");
-        return `<article class="status-card" id="status-${post.id}"><div class="status-author">${avatar}<div><b>${escapeHtml(name)}</b><small>${new Date(post.created_at).toLocaleString()}</small></div></div><div class="status-content">${escapeHtml(post.content).replace(/\n/g,"<br>")}</div>${mine?`<button class="status-delete" onclick="deleteStatus('${post.id}')">✕</button>`:""}<div class="status-interactions"><div class="status-action-row"><button class="status-action-btn" onclick="toggleStatusReactionPicker('${post.id}')">${myReaction||"😀"} REACT</button><div id="reaction-picker-${post.id}" class="status-reaction-picker">${emojis.map(e=>`<button onclick="togglePostReaction('${post.id}','${e}')">${e}</button>`).join("")}</div><button class="status-action-btn" onclick="toggleStatusComments('${post.id}')">💬 COMMENT${cs.length?` (${cs.length})`:""}</button></div>${summary?`<div class="status-reaction-summary">${summary}</div>`:""}<div id="comments-${post.id}" class="status-comments">${comments}</div><div id="comment-form-${post.id}" class="status-comment-form"><input id="comment-input-${post.id}" class="status-comment-input" maxlength="1000" placeholder="Write a comment..."><button class="status-comment-send" onclick="addPostComment('${post.id}')">POST</button></div></div></article>`;
-    }).join("")||'<div class="status-empty">NO STATUS YET</div>';
-    document.getElementById("home-feed").innerHTML=html; document.getElementById("profile-feed").innerHTML=html;
+    const posts = Array.isArray(data) ? data : [];
+    if (!posts.length) {
+        const empty = '<div class="status-empty">NO STATUS YET</div>';
+        if (homeFeed) homeFeed.innerHTML = empty;
+        if (profileFeed) profileFeed.innerHTML = empty;
+        return;
+    }
+
+    // Render immediately from status_posts. Secondary tables are optional and
+    // must never be allowed to stop the status feed from rendering.
+    const ids = [...new Set(posts.map(x => x.user_id).filter(Boolean))];
+    const profiles = {};
+    let commentsByPost = {};
+    let reactionsByPost = {};
+
+    if (ids.length) {
+        try {
+            const { data: ps } = await _supabase.from("profiles").select("id,display_name,avatar_url").in("id", ids);
+            (ps || []).forEach(p => profiles[p.id] = p);
+        } catch (e) { console.warn("Profile lookup skipped:", e); }
+    }
+
+    // Make sure the logged-in user's own profile is always available.
+    if (currentProfile?.id) profiles[currentProfile.id] = { ...profiles[currentProfile.id], ...currentProfile };
+
+    const postIds = posts.map(p => p.id).filter(Boolean);
+    if (postIds.length) {
+        try {
+            let cr = await _supabase.from("post_comments").select("id,post_id,user_id,content,created_at,media_url,media_type").in("post_id", postIds).order("created_at", { ascending: true });
+            if (cr.error && /media_url|media_type|column/i.test(cr.error.message || "")) {
+                cr = await _supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id", postIds).order("created_at", { ascending: true });
+            }
+            const rr = await _supabase.from("post_reactions").select("id,post_id,user_id,reaction,created_at").in("post_id", postIds);
+            (cr.data || []).forEach(c => (commentsByPost[c.post_id] ??= []).push(c));
+            (rr.data || []).forEach(r => (reactionsByPost[r.post_id] ??= []).push(r));
+
+            const extraIds = [...new Set([...(cr.data || []).map(x => x.user_id), ...(rr.data || []).map(x => x.user_id)])].filter(id => id && !profiles[id]);
+            if (extraIds.length) {
+                const { data: ps } = await _supabase.from("profiles").select("id,display_name,avatar_url").in("id", extraIds);
+                (ps || []).forEach(p => profiles[p.id] = p);
+            }
+        } catch (e) { console.warn("Comments/reactions skipped:", e); }
+    }
+
+    const html = posts.map(post => renderStatusCard(post, profiles[post.user_id] || {}, commentsByPost, reactionsByPost, profiles)).join("");
+    if (homeFeed) homeFeed.innerHTML = html;
+    if (profileFeed) profileFeed.innerHTML = html;
 }
+
 
 function toggleStatusReactionPicker(postId){document.getElementById(`reaction-picker-${postId}`)?.classList.toggle("open");}
 function toggleStatusComments(postId){document.getElementById(`comment-form-${postId}`)?.classList.toggle("open");document.getElementById(`comment-input-${postId}`)?.focus();}
@@ -3079,13 +3224,51 @@ async function togglePostReaction(postId,reaction){
     await loadStatuses();
 }
 
-async function addPostComment(postId){
-    const input=document.getElementById(`comment-input-${postId}`); const content=input?.value.trim(); if(!content)return;
-    const {error}=await _supabase.from("post_comments").insert([{post_id:postId,user_id:currentUser.id,content}]);
-    if(error)return alert("Could not post comment: "+error.message);
-    await loadStatuses();
-    const form=document.getElementById(`comment-form-${postId}`);form?.classList.add("open");
+function showStatusFile(source, input) {
+    const file = input?.files?.[0] || null;
+    const out = document.getElementById(`${source}-status-file-name`);
+    if (out) out.textContent = file ? "ðŸ“Ž " + file.name : "";
 }
+function triggerStatusUpload(source) {
+    document.getElementById(`${source}-status-file`)?.click();
+}
+function showCommentFile(postId, input) {
+    const out = document.getElementById(`comment-file-name-${postId}`);
+    if (out) out.textContent = input?.files?.[0]?.name || "";
+}
+async function addPostComment(postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const fileInput = document.getElementById(`comment-file-${postId}`);
+    const content = input?.value.trim() || "";
+    const file = fileInput?.files?.[0] || null;
+    if (!content && !file) return alert("Write a comment or choose a photo/video first.");
+    if (!currentUser?.id) return alert("Please log in again.");
+
+    let media_url = null, media_type = null, media_path = null;
+    if (file) {
+        const ext = (file.name.split(".").pop() || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
+        media_path = `${currentUser.id}/comments/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await _supabase.storage.from(BUCKET_NAME).upload(media_path, file);
+        if (uploadError) return alert("Comment media upload failed: " + uploadError.message);
+        media_url = _supabase.storage.from(BUCKET_NAME).getPublicUrl(media_path).data.publicUrl;
+        media_type = file.type || "";
+    }
+
+    const { error } = await _supabase.from("post_comments").insert([{ post_id: postId, user_id: currentUser.id, content, media_url, media_type }]);
+    if (error) {
+        if (media_path) await _supabase.storage.from(BUCKET_NAME).remove([media_path]);
+        if (/media_url|media_type|column/i.test(error.message || "")) {
+            return alert("Comment photo/video needs the Supabase SQL migration.\n\n" + error.message);
+        }
+        return alert("Could not post comment: " + error.message);
+    }
+    if (input) input.value = "";
+    if (fileInput) fileInput.value = "";
+    document.getElementById(`comment-file-name-${postId}`)?.replaceChildren();
+    await loadStatuses();
+    document.getElementById(`comment-form-${postId}`)?.classList.add("open");
+}
+
 async function deletePostComment(id){if(!confirm("Delete this comment?"))return;const {error}=await _supabase.from("post_comments").delete().eq("id",id).eq("user_id",currentUser.id);if(error)return alert(error.message);await loadStatuses();}
 
 async function deleteStatus(id) {
@@ -3112,8 +3295,11 @@ async function deleteStatus(id) {
 ========================= */
 
 function switchMediaTab(type) {
-    // Keep the current folder when switching between Photos and Videos.
+    // Photos/Videos are always entry points. Never reopen the last folder.
     currentMediaType = type;
+    currentFolderId = null;
+    currentFolderName = "";
+    updateVaultPath();
     document.getElementById("tab-photos")?.classList.toggle("active", type === "photo");
     document.getElementById("tab-videos")?.classList.toggle("active", type === "video");
     loadGallery();
@@ -3124,6 +3310,17 @@ function switchMediaTab(type) {
 let vaultFoldersCache = {};
 let vaultGalleryRequest = 0;
 let currentFolderName = "";
+const VAULT_FOLDER_TYPES_KEY = "vault_folder_media_types_v1";
+
+function getVaultFolderTypeMap() {
+    try { return JSON.parse(localStorage.getItem(VAULT_FOLDER_TYPES_KEY) || "{}"); } catch(e) { return {}; }
+}
+function setVaultFolderType(folderId, type) {
+    if (!folderId) return;
+    const map = getVaultFolderTypeMap();
+    map[folderId] = type;
+    try { localStorage.setItem(VAULT_FOLDER_TYPES_KEY, JSON.stringify(map)); } catch(e) {}
+}
 
 function vaultFolderCacheKey(parentId) {
     return `${currentUser?.id || ""}::${parentId || "ROOT"}`;
@@ -3133,10 +3330,10 @@ function updateVaultPath() {
     const path = document.getElementById("path-display");
     if (!path) return;
     if (currentFolderId) {
-        path.innerHTML = `📍 SECTOR: <b>${escapeHtml((currentFolderName || "FOLDER").toUpperCase())}</b>
-            <button class="vault-back-btn" type="button" onclick="goToParentFolder()">↩ BACK</button>`;
+        path.innerHTML = `ðŸ“ SECTOR: <b>${escapeHtml((currentFolderName || "FOLDER").toUpperCase())}</b>
+            <button class="vault-back-btn" type="button" onclick="goToParentFolder()">â†© BACK</button>`;
     } else {
-        path.innerHTML = `📍 SECTOR: <b>MAIN VAULT</b>`;
+        path.innerHTML = `ðŸ“ SECTOR: <b>MAIN VAULT</b>`;
     }
 }
 
@@ -3179,6 +3376,44 @@ async function loadGallery() {
 
     if (requestId !== vaultGalleryRequest || folderIdAtStart !== currentFolderId || mediaTypeAtStart !== currentMediaType) return;
 
+    // Get the newest photo/video inside each visible folder for its thumbnail.
+    let folderPreviewMap = {};
+    const folderIds = visibleFolders.map(f => f.id).filter(Boolean);
+    if (folderIds.length) {
+        const {data:folderMedia} = await _supabase.from("memories")
+            .select("id,folder_id,public_url,file_type,created_at")
+            .eq("user_id",currentUser.id).in("folder_id",folderIds)
+            .order("created_at",{ascending:false});
+        (folderMedia || []).forEach(item => {
+            if (item.folder_id && !folderPreviewMap[item.folder_id]) folderPreviewMap[item.folder_id] = item;
+        });
+    }
+
+    // At MAIN VAULT, show a root folder in the matching Photos/Videos panel.
+    // Existing folders are inferred from media inside their subtree; newly
+    // created folders use a small local tag because the folders table has no
+    // media-type column in this project.
+    if (!folderIdAtStart && visibleFolders.length) {
+        const allFolders = visibleFolders.slice();
+        const {data:allFolderRows} = await _supabase.from("folders").select("id,parent_id").eq("user_id",currentUser.id);
+        const rows = allFolderRows || [];
+        const parentMap = Object.fromEntries(rows.map(f => [f.id, f.parent_id || null]));
+        const {data:allMediaRows} = await _supabase.from("memories").select("folder_id,file_type").eq("user_id",currentUser.id).not("folder_id","is",null);
+        const typeByFolder = {};
+        (allMediaRows || []).forEach(m => {
+            let id = m.folder_id;
+            const t = m.file_type?.startsWith("video") ? "video" : "photo";
+            while (id) {
+                if (!typeByFolder[id]) typeByFolder[id] = new Set();
+                typeByFolder[id].add(t);
+                id = parentMap[id] || null;
+            }
+        });
+        const localTypes = getVaultFolderTypeMap();
+        visibleFolders = allFolders.filter(folder => !folder.parent_id && (typeByFolder[folder.id]?.has(mediaTypeAtStart) || (!typeByFolder[folder.id]?.size && localTypes[folder.id] === mediaTypeAtStart)));
+
+    }
+
     gallery.innerHTML = "";
 
     // Folders are rendered independently from the media tab. They therefore
@@ -3187,10 +3422,16 @@ async function loadGallery() {
         const card = document.createElement("div");
         card.className = "folder-card";
         card.onclick = () => openFolder(folder.id,folder.name);
+        const folderPreview = folderPreviewMap[folder.id];
+        const previewHtml = folderPreview
+            ? (folderPreview.file_type?.startsWith("video")
+                ? `<video class="folder-preview-media" src="${folderPreview.public_url}" muted preload="metadata"></video>`
+                : `<img class="folder-preview-media" src="${folderPreview.public_url}" alt="${escapeHtml(folder.name)}">`)
+            : `<div class="folder-preview-empty">NO PREVIEW</div>`;
         card.innerHTML = `
-            <div style="font-size:30px;margin-bottom:5px;">📁</div>
-            <div class="folder-title" style="font-size:11px;font-weight:bold;color:#00f0ff;" title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</div>
-            <button class="del-btn folder-delete-btn" title="Delete folder" onclick="event.stopPropagation();deleteFolder('${folder.id}')">✕</button>
+            <div class="folder-preview">${previewHtml}</div>
+            <div class="folder-title" title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</div>
+            <button class="del-btn folder-delete-btn" title="Delete folder" onclick="event.stopPropagation();deleteFolder('${folder.id}')">âœ•</button>
         `;
         gallery.appendChild(card);
     });
@@ -3207,7 +3448,7 @@ async function loadGallery() {
             : `<img src="${item.public_url}" onclick="openLightbox('${item.public_url}',false)">`;
         card.innerHTML = `
             ${mediaElement}
-            <button class="del-btn" onclick="deleteMemory('${item.id}','${item.storage_path}')">✕</button>
+            <button class="del-btn" onclick="deleteMemory('${item.id}','${item.storage_path}')">âœ•</button>
             <input type="text" class="caption-input" value="${escapeHtml(item.caption || "")}" placeholder="Add caption..." onchange="updateCaption('${item.id}',this.value)">
             <div class="media-date">${new Date(item.created_at || Date.now()).toLocaleDateString()}</div>
         `;
@@ -3263,6 +3504,7 @@ async function createFolder() {
     const key = vaultFolderCacheKey(parentIdAtCreate);
     const list = vaultFoldersCache[key] || [];
     if (data && !list.some(f => f.id === data.id)) vaultFoldersCache[key] = [...list,data];
+    if (data?.id && !parentIdAtCreate) setVaultFolderType(data.id, currentMediaType);
     await loadGallery();
 }
 
@@ -3444,7 +3686,7 @@ async function loadFriendRequests() {
 }
 async function refreshNotifications(){await loadFriendRequests();renderNotificationPanel();}
 function updateNotificationBadge(){const b=document.getElementById("notificationBadge");if(!b)return;const c=pendingRequestsCache.length+realtimeMessageNotifications.length;b.innerText=c>99?"99+":String(c);b.style.display=c?"inline-block":"none";}
-function renderNotificationPanel(){const l=document.getElementById("notificationList");if(!l)return;const a=[];pendingRequestsCache.forEach(({request,profile})=>a.push(`<div class="notification-item"><div class="notification-text"><b>${escapeHtml(profile.display_name||"MEMBER")}</b><br>sent you a friend request.</div><div class="friend-request-actions"><button class="btn" onclick="respondFriendRequest('${request.id}','accepted')">ACCEPT</button><button class="btn" style="border-color:#ff4a4a;color:#ff4a4a;" onclick="respondFriendRequest('${request.id}','declined')">DECLINE</button></div></div>`));realtimeMessageNotifications.forEach(n=>a.push(`<div class="notification-item" style="cursor:pointer" onclick="openNotificationMessage('${n.userId}')"><div class="notification-text"><b>💬 ${escapeHtml(n.name||"MEMBER")}</b><br>${escapeHtml(n.text||"Sent you a message.")}</div></div>`));l.innerHTML=a.length?a.join(""):"<div class=\"notification-empty\">NO NEW NOTIFICATIONS</div>";}
+function renderNotificationPanel(){const l=document.getElementById("notificationList");if(!l)return;const a=[];pendingRequestsCache.forEach(({request,profile})=>a.push(`<div class="notification-item"><div class="notification-text"><b>${escapeHtml(profile.display_name||"MEMBER")}</b><br>sent you a friend request.</div><div class="friend-request-actions"><button class="btn" onclick="respondFriendRequest('${request.id}','accepted')">ACCEPT</button><button class="btn" style="border-color:#ff4a4a;color:#ff4a4a;" onclick="respondFriendRequest('${request.id}','declined')">DECLINE</button></div></div>`));realtimeMessageNotifications.forEach(n=>a.push(`<div class="notification-item" style="cursor:pointer" onclick="openNotificationMessage('${n.userId}')"><div class="notification-text"><b>ðŸ’¬ ${escapeHtml(n.name||"MEMBER")}</b><br>${escapeHtml(n.text||"Sent you a message.")}</div></div>`));l.innerHTML=a.length?a.join(""):"<div class=\"notification-empty\">NO NEW NOTIFICATIONS</div>";}
 async function openNotificationMessage(userId){const n=realtimeMessageNotifications.find(x=>x.userId===userId);realtimeMessageNotifications=realtimeMessageNotifications.filter(x=>x.userId!==userId);updateNotificationBadge();renderNotificationPanel();await selectChatUser(userId,n?.name||"MEMBER");}
 
 async function toggleNotificationPanel() {
@@ -3477,7 +3719,7 @@ function setupFriendRequestRealtime(){
             if(!r || r.friend_id !== currentUser.id) return;
             await refreshNotifications();
             const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();
-            showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
+            showRealtimeNotification("ðŸ”” FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
         })
         // Accepted/declined request: current user was the requester
         .on("postgres_changes", {
@@ -3607,7 +3849,7 @@ async function renderContacts() {
 
     document.getElementById("onlineCount")
         .innerText =
-        `${online.length} ONLINE • ${friendsCache.length} FRIENDS`;
+        `${online.length} ONLINE â€¢ ${friendsCache.length} FRIENDS`;
 }
 
 
@@ -3650,12 +3892,12 @@ function contactHTML(profile,online,canAdd=false) {
             ?
             `<button class="contact-profile-btn add-contact-btn"
                      onclick="event.stopPropagation();sendFriendRequest('${profile.id}')">
-                ＋
+                ï¼‹
              </button>`
             :
             `<button class="contact-profile-btn"
                      onclick="event.stopPropagation();openFriendProfile('${profile.id}')">
-                👤
+                ðŸ‘¤
              </button>`
         }
 
@@ -3758,7 +4000,7 @@ async function searchUsers(query) {
                 </div>
 
                 <div style="font-size:8px;color:#777;margin-top:2px;">
-                    ${isFriend ? "FRIEND • CLICK TO MESSAGE" : "MEMBER • CLICK TO MESSAGE"}
+                    ${isFriend ? "FRIEND â€¢ CLICK TO MESSAGE" : "MEMBER â€¢ CLICK TO MESSAGE"}
                 </div>
 
             </div>
@@ -3766,7 +4008,7 @@ async function searchUsers(query) {
             <button class="contact-profile-btn"
                     title="Open profile"
                     onclick="event.stopPropagation();openFriendProfile('${p.id}')">
-                👤
+                ðŸ‘¤
             </button>
 
             ${
@@ -3775,7 +4017,7 @@ async function searchUsers(query) {
                 `<button class="contact-profile-btn add-contact-btn"
                          title="Send friend request"
                          onclick="event.stopPropagation();sendFriendRequest('${p.id}')">
-                    ＋
+                    ï¼‹
                  </button>`
                 :
                 ""
@@ -3813,11 +4055,11 @@ async function searchHomeUsers(query) {
         const pendingIncoming = pendingRequestsCache.some(x => x.request.user_id === p.id);
         const pendingOutgoing = pendingRequestsCache.some(x => x.request.friend_id === p.id);
         const avatar = p.avatar_url ? `<img class="avatar" src="${p.avatar_url}">` : `<div class="avatar">${escapeHtml((p.display_name || "M").charAt(0).toUpperCase())}</div>`;
-        let action = isFriend ? '<span style="color:#00ff66;font-size:8px;">✓ FRIEND</span>' :
+        let action = isFriend ? '<span style="color:#00ff66;font-size:8px;">âœ“ FRIEND</span>' :
             (pendingIncoming ? '<span style="color:#ffc107;font-size:8px;">REQUEST RECEIVED</span>' :
             (pendingOutgoing ? '<span style="color:#ffc107;font-size:8px;">REQUEST SENT</span>' :
-            `<button class="btn" style="padding:5px 7px;font-size:8px;" onclick="sendFriendRequest('${p.id}')">＋ ADD FRIEND</button>`));
-        return `<div class="home-user-result"><span class="presence-dot ${presenceUsers[p.id] ? "online" : ""}"></span>${avatar}<div class="home-user-info"><div class="home-user-name">${escapeHtml(p.display_name || "MEMBER")}</div><div class="home-user-status">${presenceUsers[p.id] ? "ONLINE" : "OFFLINE"}</div></div><button class="contact-profile-btn" onclick="openFriendProfile('${p.id}')">👤</button>${action}</div>`;
+            `<button class="btn" style="padding:5px 7px;font-size:8px;" onclick="sendFriendRequest('${p.id}')">ï¼‹ ADD FRIEND</button>`));
+        return `<div class="home-user-result"><span class="presence-dot ${presenceUsers[p.id] ? "online" : ""}"></span>${avatar}<div class="home-user-info"><div class="home-user-name">${escapeHtml(p.display_name || "MEMBER")}</div><div class="home-user-status">${presenceUsers[p.id] ? "ONLINE" : "OFFLINE"}</div></div><button class="contact-profile-btn" onclick="openFriendProfile('${p.id}')">ðŸ‘¤</button>${action}</div>`;
     }).join("");
 }
 
@@ -3992,7 +4234,7 @@ async function selectChatUser(
 
     document.getElementById("chatTargetName")
         .innerText =
-        `• ${activeChatUser.display_name}`;
+        `â€¢ ${activeChatUser.display_name}`;
 
 
     const chat =
@@ -4148,7 +4390,7 @@ function appendChatMessage(
                     <a href="${msg.attachment_url}"
                        target="_blank"
                        class="created-by-link" style="color:#00f0ff;text-decoration:none;">
-                        📁 View Attachment
+                        ðŸ“ View Attachment
                     </a>
                </div>`;
     }
@@ -4156,7 +4398,7 @@ function appendChatMessage(
 
     const reply = msg.reply_to_id
     ? `<div class="reply-quote">
-            ↩ Replying to a message
+            â†© Replying to a message
        </div>`
     : "";
 
@@ -4292,7 +4534,7 @@ function showRealtimeNotification(title, message, userId=null, displayName=null)
         document.body.appendChild(box);
     }
     const toast = document.createElement("div");
-    toast.style.cssText = "background:#111820;border:1px solid #00f0ff;color:#fff;padding:12px;border-radius:6px;box-shadow:0 0 18px #00f0ff33;cursor:pointer;font-size:11px;";
+    toast.style.cssText = "background:#111820;border:1px solid #00f0ff;color:#fff;padding:4px;border-radius:6px;box-shadow:0 0 18px #00f0ff33;cursor:pointer;font-size:11px;";
     toast.innerHTML = `<b style="color:#00f0ff">${escapeHtml(title)}</b><div style="margin-top:4px;color:#ddd">${escapeHtml(message)}</div>`;
     if (userId) {
         toast.onclick = () => selectChatUser(userId, displayName);
@@ -4304,8 +4546,8 @@ function showRealtimeNotification(title, message, userId=null, displayName=null)
 async function setupChatRealtime(){
     if(chatChannel){_supabase.removeChannel(chatChannel);chatChannel=null;}
     if(userEventChannel){_supabase.removeChannel(userEventChannel);userEventChannel=null;}
-    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`).on("broadcast",{event:"new_message"},async({payload})=>{const m=payload?.message;if(!m||m.recipient_id!==currentUser.id)return;const name=payload.senderName||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else{realtimeMessageNotifications=[{userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id},...realtimeMessageNotifications.filter(x=>x.messageId!==m.id)];updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("broadcast",{event:"friend_request"},async({payload})=>{const r=payload?.request;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).on("broadcast",{event:"friend_status"},async({payload})=>{const r=payload?.request;if(!r)return;if(r.user_id!==currentUser.id && r.friend_id!==currentUser.id)return;await loadFriends();await refreshNotifications();await renderContacts();}).subscribe(status=>console.log("User events realtime:",status));
-    chatChannel=_supabase.channel(`direct-messages:${currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`recipient_id=eq.${currentUser.id}`},async payload=>{const m=payload.new;if(!m||m.recipient_id!==currentUser.id)return;const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();const name=p?.display_name||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{const m=payload.new||payload.old;if(!m||payload.eventType==="INSERT")return;const relevant=activeChatUser&&((m.user_id===currentUser.id&&m.recipient_id===activeChatUser.id)||(m.user_id===activeChatUser.id&&m.recipient_id===currentUser.id));if(relevant)await loadChatMessages();}).subscribe(status=>console.log("Message realtime:",status));
+    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`).on("broadcast",{event:"new_message"},async({payload})=>{const m=payload?.message;if(!m||m.recipient_id!==currentUser.id)return;const name=payload.senderName||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else{realtimeMessageNotifications=[{userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id},...realtimeMessageNotifications.filter(x=>x.messageId!==m.id)];updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("ðŸ’¬ NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("broadcast",{event:"friend_request"},async({payload})=>{const r=payload?.request;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("ðŸ”” FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).on("broadcast",{event:"friend_status"},async({payload})=>{const r=payload?.request;if(!r)return;if(r.user_id!==currentUser.id && r.friend_id!==currentUser.id)return;await loadFriends();await refreshNotifications();await renderContacts();}).subscribe(status=>console.log("User events realtime:",status));
+    chatChannel=_supabase.channel(`direct-messages:${currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`recipient_id=eq.${currentUser.id}`},async payload=>{const m=payload.new;if(!m||m.recipient_id!==currentUser.id)return;const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();const name=p?.display_name||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("ðŸ’¬ NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{const m=payload.new||payload.old;if(!m||payload.eventType==="INSERT")return;const relevant=activeChatUser&&((m.user_id===currentUser.id&&m.recipient_id===activeChatUser.id)||(m.user_id===activeChatUser.id&&m.recipient_id===currentUser.id));if(relevant)await loadChatMessages();}).subscribe(status=>console.log("Message realtime:",status));
 }
 
 /* =========================
@@ -4885,7 +5127,7 @@ async function openFriendProfile(userId) {
                 src="${profile.avatar_url}">`
 
         : `<div class="profile-view-placeholder">
-                👤
+                ðŸ‘¤
            </div>`;
 
 
@@ -4905,8 +5147,8 @@ async function openFriendProfile(userId) {
         <div class="profile-view-status">
             ${
                 online
-                ? "🟢 ONLINE"
-                : "⚫ OFFLINE"
+                ? "ðŸŸ¢ ONLINE"
+                : "âš« OFFLINE"
             }
         </div>
 
@@ -4923,12 +5165,12 @@ async function openFriendProfile(userId) {
 
             <button class="btn"
                     onclick="selectChatUser('${profile.id}','${escapeHtml(profile.display_name || "MEMBER")}');closeFriendProfile()">
-                💬 MESSAGE
+                ðŸ’¬ MESSAGE
             </button>
 
             <button class="btn"
                     onclick="selectChatUser('${profile.id}','${escapeHtml(profile.display_name || "MEMBER")}');closeFriendProfile();startCall(true)">
-                📹 CALL
+                ðŸ“¹ CALL
             </button>
 
         </div>
@@ -5214,8 +5456,8 @@ async function receiveCallOffer(payload) {
         "incomingCallType"
     ).innerText =
         payload.video
-        ? "📹 VIDEO CALL"
-        : "📞 AUDIO CALL";
+        ? "ðŸ“¹ VIDEO CALL"
+        : "ðŸ“ž AUDIO CALL";
 
 
     document.getElementById(
@@ -5748,7 +5990,7 @@ document.addEventListener(
 
 /* =========================
    LOGIN / REGISTER
-   Manual login only — saved sessions will NOT auto-open the dashboard
+   Manual login only â€” saved sessions will NOT auto-open the dashboard
 ========================= */
 
 // Allow ENTER to submit from the login form.
@@ -5775,4 +6017,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
-
