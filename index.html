@@ -3905,6 +3905,15 @@ function setupFriendRequestRealtime(){
             const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();
             showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
         })
+        // Direct broadcast fallback: the sender notifies this exact user immediately.
+        // This keeps friend requests working even when Postgres Realtime filters/publication lag.
+        .on("broadcast", {event:"friend_request"}, async ({payload}) => {
+            const r = payload?.request;
+            if(!r || r.friend_id !== currentUser.id) return;
+            await refreshNotifications();
+            const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();
+            showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
+        })
         // Accepted/declined request: current user was the requester
         .on("postgres_changes", {
             event:"UPDATE", schema:"public", table:"friends",
@@ -4320,10 +4329,18 @@ async function sendFriendRequest(friendId) {
             return alert("Could not send request: " + error.message);
         }
 
+        const requestPayload = {request:created || {user_id:currentUser.id,friend_id:friendId,status:"pending"}};
+        // Primary direct notification channel used by the recipient's friend-request listener.
+        await _supabase.channel(`friend-requests:${friendId}`).send({
+            type:"broadcast",
+            event:"friend_request",
+            payload:requestPayload
+        });
+        // Keep the existing user-events broadcast for compatibility with other listeners.
         await _supabase.channel(`user-events:${friendId}`).send({
             type:"broadcast",
             event:"friend_request",
-            payload:{request:created || {user_id:currentUser.id,friend_id:friendId,status:"pending"}}
+            payload:requestPayload
         });
 
         await refreshNotifications();
@@ -5476,8 +5493,6 @@ function setupCallRealtime() {
         _supabase.removeChannel(
             callChannel
         );
-    if (friendRequestChannel) _supabase.removeChannel(friendRequestChannel);
-    if (userEventChannel) _supabase.removeChannel(userEventChannel);
     if (friendRequestPoller) clearInterval(friendRequestPoller);
 
 
