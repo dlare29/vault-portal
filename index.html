@@ -1800,6 +1800,22 @@ input:checked + .slider:before {
     text-shadow:0 0 6px rgba(255,255,255,0.28);
 }
 .folder-card .folder-delete-btn {z-index:3;top:3px;right:3px;width:17px;height:17px;font-size:8px;}
+
+/* Chat SEND button: keep the full label visible even in compact windows */
+.chat-input-area .chat-send-btn {
+    flex: 0 0 auto;
+    min-width: 48px;
+    width: auto;
+    padding: 6px 8px !important;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 10px;
+}
+.chat-input-area .chat-input {
+    min-width: 0;
+    flex: 1 1 auto;
+}
 </style>
 
 
@@ -3313,7 +3329,28 @@ async function loadStatuses() {
         return;
     }
 
-    const posts = Array.isArray(data) ? data : [];
+    let posts = Array.isArray(data) ? data : [];
+
+    // PRIVACY: only the logged-in user and accepted friends can see statuses.
+    // Load the accepted-friend IDs directly so this works even before friendsCache finishes loading.
+    const { data: acceptedFriends, error: privacyFriendError } = await _supabase
+        .from("friends")
+        .select("user_id,friend_id")
+        .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
+        .eq("status", "accepted");
+
+    const friendIds = new Set([String(currentUser.id)]);
+    (acceptedFriends || []).forEach(f => {
+        const otherId = String(f.user_id) === String(currentUser.id) ? f.friend_id : f.user_id;
+        if (otherId) friendIds.add(String(otherId));
+    });
+
+    if (privacyFriendError) {
+        console.warn("Status privacy friend lookup:", privacyFriendError.message);
+    }
+
+    posts = posts.filter(post => post && friendIds.has(String(post.user_id)));
+
     if (!posts.length) {
         const empty = '<div class="status-empty">NO STATUS YET</div>';
         if (homeFeed) homeFeed.innerHTML = empty;
@@ -4539,7 +4576,7 @@ function createChatWindow(userId, displayName) {
             <button class="icon-btn" title="Attach file" onclick="triggerFileSelect(this.closest('.chat-window'))">📎</button>
             <input type="file" class="chat-file-input" style="display:none;" onchange="sendChatFile(this)">
             <input type="text" class="chat-input" placeholder="Type sweet message..." onfocus="activateChatWindow(this.closest('.chat-window'))" onkeydown="if(event.key==='Enter') sendMessage(null,null,this.closest('.chat-window'))">
-            <button class="btn" style="padding:6px 10px;" onclick="sendMessage(null,null,this.closest('.chat-window'))">SEND</button>
+            <button class="btn chat-send-btn" onclick="sendMessage(null,null,this.closest('.chat-window'))">SEND</button>
         </div>
     `;
 
