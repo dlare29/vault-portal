@@ -364,6 +364,10 @@ header {
     margin-bottom:10px;
 }
 
+.profile-status-composer {
+    margin-top:12px;
+}
+
 .composer-title {
     color:#00f0ff;
     font-size:9px;
@@ -993,7 +997,7 @@ header {
 .chat-window {
     position:fixed;
     bottom:20px;
-    width:320px;
+    width:240px;
     height:285px;
     display:flex;
     background:#161a21;
@@ -2070,6 +2074,16 @@ input:checked + .slider:before {
 </div>
 
 
+<div class="status-composer profile-status-composer">
+    <div class="composer-title">POST STATUS</div>
+    <textarea id="profile-status-input" rows="3" placeholder="What's on your mind?"></textarea>
+    <input type="file" id="profile-status-file" class="status-file-input" accept="image/*,video/*" onchange="showStatusFile('profile',this)">
+    <div class="status-selected-file" id="profile-status-file-name"></div>
+    <div class="composer-actions">
+        <button class="btn status-upload-btn" type="button" onclick="triggerStatusUpload('profile')">UPLOAD</button>
+        <button class="btn" type="button" onclick="createStatus('profile')">POST STATUS</button>
+    </div>
+</div>
 
 <div id="profile-feed"
      class="status-feed">
@@ -2561,6 +2575,22 @@ const SUPABASE_ANON_KEY =
 
 const BUCKET_NAME = "vault-media";
 
+const CLOUDINARY_CLOUD_NAME = "gksu0i9r";
+const CLOUDINARY_UPLOAD_PRESET = "vault_messenger";
+
+async function uploadToCloudinary(file, assetFolder) {
+    if (!file) throw new Error("No file selected.");
+    const form = new FormData();
+    form.append("file", file);
+    form.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    if (assetFolder) form.append("asset_folder", assetFolder);
+    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+    const response = await fetch(endpoint, { method:"POST", body:form });
+    let result = null; try { result = await response.json(); } catch (_) {}
+    if (!response.ok || !result?.secure_url) throw new Error(result?.error?.message || `Cloudinary upload failed (${response.status}).`);
+    return result;
+}
+
 const _supabase =
 supabase.createClient(
     SUPABASE_URL,
@@ -2911,27 +2941,9 @@ async function uploadCoverPhoto(inputEl) {
             setVaultFolderType(folder.id, "photo");
         } catch (_) {}
 
-        const ext = (file.name.split(".").pop() || "jpg")
-            .replace(/[^a-z0-9]/gi, "")
-            .toLowerCase();
-
-        const path = `${currentUser.id}/folder_${folder.id}/cover_${Date.now()}.${ext}`;
-
-        const { error:uploadError } = await _supabase
-            .storage
-            .from(BUCKET_NAME)
-            .upload(path, file);
-
-        if (uploadError) {
-            throw new Error("Cover Photo Upload Failed: " + uploadError.message);
-        }
-
-        const { data:urlData } = _supabase
-            .storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(path);
-
-        const publicUrl = urlData.publicUrl;
+        const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/cover/folder_${folder.id}`);
+        const publicUrl = result.secure_url;
+        const path = `cloudinary:${result.public_id}`;
 
         // Save the cover as a normal media record inside its automatic folder.
         const { error:memoryError } = await _supabase
@@ -2946,7 +2958,6 @@ async function uploadCoverPhoto(inputEl) {
             }]);
 
         if (memoryError) {
-            await _supabase.storage.from(BUCKET_NAME).remove([path]);
             throw new Error("Could not save cover photo: " + memoryError.message);
         }
 
@@ -3160,68 +3171,18 @@ async function saveSettings() {
 ========================= */
 
 async function uploadProfilePicture(inputEl) {
-
-    if (!inputEl.files?.length) return;
-
+    if (!inputEl.files?.length || !currentUser?.id) return;
     const file = inputEl.files[0];
-
-    const ext =
-        file.name.split(".").pop();
-
-    const path =
-        `${currentUser.id}_${Date.now()}.${ext}`;
-
-
-    const { error:uploadError } =
-        await _supabase
-            .storage
-            .from("avatars")
-            .upload(
-                path,
-                file,
-                { upsert:true }
-            );
-
-    if (uploadError) {
-        return alert(
-            "Avatar Upload Failed: " +
-            uploadError.message
-        );
-    }
-
-
-    const { data } =
-        _supabase
-            .storage
-            .from("avatars")
-            .getPublicUrl(path);
-
-
-    const publicUrl =
-        data.publicUrl;
-
-
-    const { error } =
-        await _supabase
-            .from("profiles")
-            .upsert({
-                id:currentUser.id,
-                avatar_url:publicUrl
-            });
-
-
-    if (error) {
-        return alert(
-            "Profile picture save failed: " +
-            error.message
-        );
-    }
-
-
-    currentProfile.avatar_url =
-        publicUrl;
-
-    updateProfileUI();
+    if (!file.type.startsWith("image/")) { inputEl.value=""; return alert("Please select an image for the profile picture."); }
+    try {
+        const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/profile`);
+        const { error } = await _supabase.from("profiles").upsert({id:currentUser.id, avatar_url:result.secure_url});
+        if (error) return alert("Profile picture save failed: " + error.message);
+        currentProfile.avatar_url = result.secure_url;
+        inputEl.value="";
+        updateProfileUI();
+        alert("Profile picture updated.");
+    } catch(e) { inputEl.value=""; alert(e.message || "Avatar upload failed."); }
 }
 
 
@@ -3238,21 +3199,19 @@ async function createStatus(source) {
     if (!content && !file) return alert("Write something or add a photo/video first.");
     if (!currentUser?.id) return alert("Please log in again before posting.");
 
-    let media_url = null, media_type = null, path = null;
+    let media_url = null, media_type = null;
     if (file) {
-        const ext = (file.name.split(".").pop() || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
-        path = `${currentUser.id}/status/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await _supabase.storage.from(BUCKET_NAME).upload(path, file);
-        if (uploadError) return alert("Status media upload failed: " + uploadError.message);
-        media_url = _supabase.storage.from(BUCKET_NAME).getPublicUrl(path).data.publicUrl;
-        media_type = file.type || "";
+        try {
+            const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/status`);
+            media_url = result.secure_url;
+            media_type = file.type || "";
+        } catch(e) { return alert("Status media upload failed: " + e.message); }
     }
 
     const { data, error } = await _supabase.from("status_posts")
         .insert([{ user_id: currentUser.id, content, media_url, media_type }])
         .select("*").single();
     if (error) {
-        if (path) await _supabase.storage.from(BUCKET_NAME).remove([path]);
         if (/media_url|media_type|column/i.test(error.message || "")) {
             return alert("Status photo/video needs the Supabase SQL migration.\n\n" + error.message);
         }
@@ -3436,19 +3395,17 @@ async function addPostComment(postId) {
     if (!content && !file) return alert("Write a comment or choose a photo/video first.");
     if (!currentUser?.id) return alert("Please log in again.");
 
-    let media_url = null, media_type = null, media_path = null;
+    let media_url = null, media_type = null;
     if (file) {
-        const ext = (file.name.split(".").pop() || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
-        media_path = `${currentUser.id}/comments/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await _supabase.storage.from(BUCKET_NAME).upload(media_path, file);
-        if (uploadError) return alert("Comment media upload failed: " + uploadError.message);
-        media_url = _supabase.storage.from(BUCKET_NAME).getPublicUrl(media_path).data.publicUrl;
-        media_type = file.type || "";
+        try {
+            const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/comments/${postId}`);
+            media_url = result.secure_url;
+            media_type = file.type || "";
+        } catch(e) { return alert("Comment media upload failed: " + e.message); }
     }
 
     const { error } = await _supabase.from("post_comments").insert([{ post_id: postId, user_id: currentUser.id, content, media_url, media_type }]);
     if (error) {
-        if (media_path) await _supabase.storage.from(BUCKET_NAME).remove([media_path]);
         if (/media_url|media_type|column/i.test(error.message || "")) {
             return alert("Comment photo/video needs the Supabase SQL migration.\n\n" + error.message);
         }
@@ -3771,28 +3728,18 @@ async function addMemories() {
         }
 
         for (const file of files) {
-            const ext = file.name.split(".").pop();
-            const path = `${currentUser.id}/folder_${destinationFolderId}/${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-            const { error:uploadError } = await _supabase.storage.from(BUCKET_NAME).upload(path,file);
-            if (uploadError) {
-                alert("Upload Failed: " + uploadError.message);
-                continue;
-            }
-
-            const { data } = _supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
-            const { error } = await _supabase.from("memories").insert([{
-                user_id:currentUser.id,
-                folder_id:destinationFolderId,
-                public_url:data.publicUrl,
-                storage_path:path,
-                file_type:file.type,
-                caption:""
-            }]);
-
-            if (error) {
-                await _supabase.storage.from(BUCKET_NAME).remove([path]);
-                alert("Could not save media: " + error.message);
-            }
+            try {
+                const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/folder_${destinationFolderId}`);
+                const { error } = await _supabase.from("memories").insert([{
+                    user_id:currentUser.id,
+                    folder_id:destinationFolderId,
+                    public_url:result.secure_url,
+                    storage_path:`cloudinary:${result.public_id}`,
+                    file_type:file.type,
+                    caption:""
+                }]);
+                if (error) alert("Could not save media: " + error.message);
+            } catch(e) { alert("Upload Failed: " + (e.message || "Cloudinary error")); }
         }
     } catch (e) {
         alert(e.message || "Upload failed.");
@@ -5273,14 +5220,10 @@ async function sendChatFile(input) {
 
     if (!input.files?.length) return;
     const file=input.files[0];
-    const ext=file.name.split(".").pop();
-    const path=`chat_files/${currentUser.id}_${Date.now()}.${ext}`;
-
-    const { error:uploadError }=await _supabase.storage.from(BUCKET_NAME).upload(path,file);
-    if (uploadError) return alert("Attachment Failed: " + uploadError.message);
-
-    const { data }=_supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
-    await sendMessage(data.publicUrl,file.type.startsWith("image") ? "image" : "file",chat);
+    try {
+        const result=await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/chat`);
+        await sendMessage(result.secure_url,file.type.startsWith("image") ? "image" : "file",chat);
+    } catch(e) { alert("Attachment Failed: " + (e.message || "Cloudinary error")); }
     input.value="";
 }
 
