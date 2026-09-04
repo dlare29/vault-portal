@@ -861,32 +861,49 @@ header {
    CHAT
 ========================= */
 
-#chatWindow {
+#chatWindowsContainer {
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:0;
+    z-index:500;
+    pointer-events:none;
+}
+
+.chat-window {
     position:fixed;
     bottom:20px;
-    right:195px;
     width:320px;
     height:285px;
-    display:none;
+    display:flex;
     background:#161a21;
     border:1px solid #00f0ff44;
     border-radius:8px;
     flex-direction:column;
     box-shadow:0 5px 25px rgba(0,0,0,.5);
     z-index:500;
-}
-
-#chatWindow.open {
-    display:flex;
-}
-
-#chatWindow.minimized {
-    height:40px;
+    pointer-events:auto;
     overflow:hidden;
+    transition:box-shadow .15s ease, height .15s ease;
 }
 
-#chatWindow.closed {
+.chat-window.minimized {
+    height:40px;
+}
+
+.chat-window.closed {
     display:none;
+}
+
+.chat-window.active-chat {
+    box-shadow:0 0 0 1px #00f0ff66, 0 5px 28px rgba(0,240,255,.20);
+}
+
+.chat-target-name {
+    color:#fff;
+    font-size:9px;
+    margin-left:6px;
 }
 
 .chat-header {
@@ -899,12 +916,6 @@ header {
     justify-content:space-between;
     align-items:center;
     border-bottom:1px solid #222;
-}
-
-#chatTargetName {
-    color:#fff;
-    font-size:9px;
-    margin-left:6px;
 }
 
 .icon-btn {
@@ -1509,7 +1520,7 @@ input:checked + .slider:before {
         bottom:325px;
     }
 
-    #chatWindow {
+    .chat-window {
         right:20px;
         bottom:20px;
         width:calc(100vw - 40px);
@@ -1557,7 +1568,7 @@ input:checked + .slider:before {
         right:10px;
     }
 
-    #chatWindow {
+    .chat-window {
         right:10px;
         width:calc(100vw - 20px);
     }
@@ -2012,105 +2023,7 @@ input:checked + .slider:before {
      CHAT
 ========================= -->
 
-<div id="chatWindow">
-
-<div class="chat-header">
-
-    <span style="flex:1;">
-        COMMS CHANNEL
-        <span id="chatTargetName"></span>
-    </span>
-
-    <button class="icon-btn"
-            onclick="startCall(false)">
-        📞
-    </button>
-
-    <button class="icon-btn"
-            onclick="startCall(true)">
-        📹
-    </button>
-
-    <button class="icon-btn"
-            onclick="minimizeChat()">
-        —
-    </button>
-
-    <button class="icon-btn"
-            onclick="closeChat()">
-        ✕
-    </button>
-
-</div>
-
-
-<div class="chat-messages"
-     id="chatMessages">
-</div>
-
-
-<div id="emojiPicker"
-     class="emoji-picker">
-
-    <span onclick="addEmoji('🥰')">🥰</span>
-    <span onclick="addEmoji('😘')">😘</span>
-    <span onclick="addEmoji('💖')">💖</span>
-    <span onclick="addEmoji('❤️')">❤️</span>
-    <span onclick="addEmoji('🥺')">🥺</span>
-    <span onclick="addEmoji('😍')">😍</span>
-    <span onclick="addEmoji('🌹')">🌹</span>
-    <span onclick="addEmoji('💑')">💑</span>
-    <span onclick="addEmoji('💗')">💗</span>
-    <span onclick="addEmoji('💌')">💌</span>
-    <span onclick="addEmoji('💋')">💋</span>
-    <span onclick="addEmoji('🤗')">🤗</span>
-
-</div>
-
-
-<div id="replyPreview"
-     class="reply-preview">
-
-    <span id="replyPreviewText"></span>
-
-    <button class="icon-btn"
-            onclick="cancelReply()">
-        ✕
-    </button>
-
-</div>
-
-
-<div class="chat-input-area">
-
-    <button class="icon-btn"
-            onclick="toggleEmojiPicker()">
-        🥰
-    </button>
-
-    <button class="icon-btn"
-            onclick="triggerFileSelect()">
-        📎
-    </button>
-
-    <input type="file"
-           id="chatFileInput"
-           style="display:none;"
-           onchange="sendChatFile(this)">
-
-    <input type="text"
-           id="chatInput"
-           placeholder="Type sweet message...">
-
-    <button class="btn"
-            style="padding:6px 10px;"
-            onclick="sendMessage()">
-        SEND
-    </button>
-
-</div>
-
-</div>
+<div id="chatWindowsContainer"></div>
 
 <!-- =========================
      SETTINGS
@@ -2568,6 +2481,8 @@ let presenceChannel = null;
 let callChannel = null;
 
 let activeChatUser = null;
+let activeChatWindow = null;
+const openChatWindows = new Map();
 let friendsCache = [];
 let presenceUsers = {};
 let friendRequestChannel = null;
@@ -4216,307 +4131,306 @@ async function respondFriendRequest(
    CHAT
 ========================= */
 
-async function selectChatUser(
-    userId,
-    displayName
-) {
+function getChatWindowsContainer() {
+    let container = document.getElementById("chatWindowsContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "chatWindowsContainer";
+        document.body.appendChild(container);
+    }
+    return container;
+}
 
-    if (userId === currentUser.id)
-        return;
+function getChatWindowByUserId(userId) {
+    return openChatWindows.get(String(userId)) || null;
+}
 
-
-    activeChatUser = {
-        id:userId,
-        display_name:
-            displayName || "MEMBER"
+function getChatWindowUser(chat) {
+    if (!chat) return null;
+    return {
+        id: chat.dataset.userId,
+        display_name: chat.dataset.displayName || "MEMBER"
     };
-
-
-    document.getElementById("chatTargetName")
-        .innerText =
-        `• ${activeChatUser.display_name}`;
-
-
-    const chat =
-        document.getElementById("chatWindow");
-
-
-    chat.classList.add("open");
-
-    chat.classList.remove(
-        "closed",
-        "minimized"
-    );
-
-
-    await loadChatMessages();
 }
 
+function activateChatWindow(chat) {
+    if (!chat) return;
+    activeChatWindow = chat;
+    activeChatUser = getChatWindowUser(chat);
 
-async function loadChatMessages() {
+    document.querySelectorAll(".chat-window.active-chat")
+        .forEach(w => w.classList.remove("active-chat"));
+    chat.classList.add("active-chat");
 
-    const container =
-        document.getElementById(
-            "chatMessages"
-        );
-
-
-    container.innerHTML = "";
-
-
-    if (!activeChatUser) {
-
-        container.innerHTML =
-            '<div style="color:#555;text-align:center;margin-top:20px;">SELECT A FRIEND TO START A PRIVATE CHAT</div>';
-
-        return;
-    }
-
-
-    const { data,error } =
-        await _supabase
-            .from("messages")
-            .select("*")
-            .or(
-                `and(user_id.eq.${currentUser.id},recipient_id.eq.${activeChatUser.id}),and(user_id.eq.${activeChatUser.id},recipient_id.eq.${currentUser.id})`
-            )
-            .order(
-                "created_at",
-                {ascending:true}
-            )
-            .limit(100);
-
-
-    if (error) {
-
-        container.innerHTML =
-            `<div style="color:#ff4a4a;">
-                CHAT ERROR: ${escapeHtml(error.message)}
-             </div>`;
-
-        return;
-    }
-
-
-    if (!data?.length) {
-
-        container.innerHTML =
-            '<div style="color:#555;text-align:center;margin-top:20px;">NO MESSAGES YET</div>';
-
-        return;
-    }
-
-
-    data
-        .filter(
-            m =>
-                !m.deleted_for?.includes(
-                    currentUser.id
-                )
-        )
-        .forEach(
-            m =>
-                appendChatMessage(
-                    m,
-                    m.user_id === currentUser.id
-                    ? "YOU"
-                    : activeChatUser.display_name
-                )
-        );
+    // Bring the clicked chat to the front without creating a new window.
+    const maxZ = Array.from(document.querySelectorAll(".chat-window"))
+        .reduce((m, w) => Math.max(m, parseInt(w.style.zIndex || "500", 10)), 500);
+    chat.style.zIndex = String(maxZ + 1);
 }
 
+function positionChatWindows() {
+    const windows = Array.from(openChatWindows.values())
+        .filter(w => w && !w.classList.contains("closed"));
 
-function appendChatMessage(
-    msg,
-    senderDisplayName
-) {
+    const gap = 10;
+    const rightBase = window.innerWidth <= 600 ? 10 : 195;
+    const mobile = window.innerWidth <= 600;
 
-    const container =
-        document.getElementById(
-            "chatMessages"
-        );
-
-
-    const isMine =
-        msg.user_id === currentUser.id;
-
-
-    const div =
-        document.createElement("div");
-
-
-    div.className =
-        `message ${isMine ? "mine" : ""}`;
-
-
-    div.id =
-        `msg-${msg.id}`;
-
-
-    div.oncontextmenu =
-        e =>
-            openMessageContext(
-                e,
-                msg
-            );
-
-
-    const time =
-        new Date(
-            msg.created_at ||
-            Date.now()
-        ).toLocaleTimeString(
-            [],
-            {
-                hour:"2-digit",
-                minute:"2-digit"
-            }
-        );
-
-
-    let attachment = "";
-
-
-    if (msg.attachment_url) {
-
-        attachment =
-            msg.attachment_type === "image"
-
-            ? `<img src="${msg.attachment_url}"
-                    class="chat-attachment"
-                    onclick="openLightbox('${msg.attachment_url}',false)">`
-
-            : `<div style="margin-top:5px;">
-                    <a href="${msg.attachment_url}"
-                       target="_blank"
-                       class="created-by-link" style="color:#00f0ff;text-decoration:none;">
-                        📁 View Attachment
-                    </a>
-               </div>`;
+    if (mobile) {
+        windows.forEach((chat, index) => {
+            chat.style.right = "10px";
+            chat.style.bottom = `${20 + index * 50}px`;
+            chat.style.width = "calc(100vw - 20px)";
+            chat.style.maxWidth = "320px";
+        });
+        return;
     }
 
+    // Keep several chat boxes visible without covering the main contacts/settings area.
+    const available = Math.max(320, window.innerWidth - rightBase - 20);
+    const width = Math.max(250, Math.min(320, (available - gap * Math.max(0, windows.length - 1)) / Math.max(1, windows.length)));
 
-    const reply = msg.reply_to_id
-    ? `<div class="reply-quote">
-            ↩ Replying to a message
-       </div>`
-    : "";
+    windows.forEach((chat, index) => {
+        chat.style.right = `${rightBase + index * (width + gap)}px`;
+        chat.style.bottom = "20px";
+        chat.style.width = `${width}px`;
+        chat.style.maxWidth = `${width}px`;
+    });
+}
 
-       
+function createChatWindow(userId, displayName) {
+    const key = String(userId);
+    const existing = getChatWindowByUserId(key);
+    if (existing) return existing;
 
-
-    div.innerHTML = `
-
-        <div class="message-header">
-            <span class="message-name">
-                ${escapeHtml(senderDisplayName)}
+    const chat = document.createElement("div");
+    chat.className = "chat-window open active-chat";
+    chat.dataset.userId = key;
+    chat.dataset.displayName = displayName || "MEMBER";
+    chat.innerHTML = `
+        <div class="chat-header">
+            <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                COMMS CHANNEL
+                <span class="chat-target-name">• ${escapeHtml(displayName || "MEMBER")}</span>
             </span>
+            <button class="icon-btn" title="Voice call" onclick="activateChatWindow(this.closest('.chat-window')); startCall(false)">📞</button>
+            <button class="icon-btn" title="Video call" onclick="activateChatWindow(this.closest('.chat-window')); startCall(true)">📹</button>
+            <button class="icon-btn" title="Minimize" onclick="minimizeChat(this.closest('.chat-window'))">—</button>
+            <button class="icon-btn" title="Close" onclick="closeChat(this.closest('.chat-window'))">✕</button>
         </div>
 
-        ${reply}
+        <div class="chat-messages"></div>
 
-        ${
-            msg.text
-            ?
-            `<div class="message-text">
-                ${escapeHtml(msg.text)}
-                ${
-                    msg.edited_at
-                    ? '<span style="font-size:7px;color:#666;"> (edited)</span>'
-                    : ""
-                }
-             </div>`
-            : ""
-        }
-
-        ${attachment}
-
-        <div id="reactions-${msg.id}"
-             class="reaction-row">
+        <div class="emoji-picker">
+            <span onclick="addEmoji('🥰', this.closest('.chat-window'))">🥰</span>
+            <span onclick="addEmoji('😘', this.closest('.chat-window'))">😘</span>
+            <span onclick="addEmoji('💖', this.closest('.chat-window'))">💖</span>
+            <span onclick="addEmoji('❤️', this.closest('.chat-window'))">❤️</span>
+            <span onclick="addEmoji('🥺', this.closest('.chat-window'))">🥺</span>
+            <span onclick="addEmoji('😍', this.closest('.chat-window'))">😍</span>
+            <span onclick="addEmoji('🌹', this.closest('.chat-window'))">🌹</span>
+            <span onclick="addEmoji('💑', this.closest('.chat-window'))">💑</span>
+            <span onclick="addEmoji('💗', this.closest('.chat-window'))">💗</span>
+            <span onclick="addEmoji('💌', this.closest('.chat-window'))">💌</span>
+            <span onclick="addEmoji('💋', this.closest('.chat-window'))">💋</span>
+            <span onclick="addEmoji('🤗', this.closest('.chat-window'))">🤗</span>
         </div>
 
-        <div class="message-time">
-            ${time}
+        <div class="reply-preview">
+            <span class="reply-preview-text"></span>
+            <button class="icon-btn" onclick="cancelReply(this.closest('.chat-window'))">✕</button>
+        </div>
+
+        <div class="chat-input-area">
+            <button class="icon-btn" title="Emoji" onclick="toggleEmojiPicker(this.closest('.chat-window'))">🥰</button>
+            <button class="icon-btn" title="Attach file" onclick="triggerFileSelect(this.closest('.chat-window'))">📎</button>
+            <input type="file" class="chat-file-input" style="display:none;" onchange="sendChatFile(this)">
+            <input type="text" class="chat-input" placeholder="Type sweet message..." onfocus="activateChatWindow(this.closest('.chat-window'))" onkeydown="if(event.key==='Enter') sendMessage(null,null,this.closest('.chat-window'))">
+            <button class="btn" style="padding:6px 10px;" onclick="sendMessage(null,null,this.closest('.chat-window'))">SEND</button>
         </div>
     `;
 
+    const chatHeader = chat.querySelector(".chat-header");
+    if (chatHeader) {
+        chatHeader.style.cursor = "pointer";
+        chatHeader.addEventListener("mousedown", (e) => {
+            if (e.target.closest("button")) return;
+            if (chat.classList.contains("minimized")) {
+                e.preventDefault();
+                e.stopPropagation();
+                restoreChat(chat);
+            } else {
+                activateChatWindow(chat);
+            }
+        });
+        chatHeader.addEventListener("click", (e) => {
+            if (e.target.closest("button")) return;
+            if (chat.classList.contains("minimized")) {
+                e.preventDefault();
+                e.stopPropagation();
+                restoreChat(chat);
+            } else {
+                activateChatWindow(chat);
+            }
+        });
+    }
 
-    container.appendChild(div);
+    chat.addEventListener("mousedown", (e) => {
+        if (!e.target.closest(".chat-header")) activateChatWindow(chat);
+    });
 
-    renderReactions(msg.id);
-
-    container.scrollTop =
-        container.scrollHeight;
+    getChatWindowsContainer().appendChild(chat);
+    openChatWindows.set(key, chat);
+    activateChatWindow(chat);
+    positionChatWindows();
+    return chat;
 }
 
+async function selectChatUser(userId, displayName) {
+    if (!currentUser || userId === currentUser.id) return;
+
+    const key = String(userId);
+    let chat = getChatWindowByUserId(key);
+
+    if (!chat) {
+        chat = createChatWindow(userId, displayName || "MEMBER");
+        chat.dataset.displayName = displayName || "MEMBER";
+    }
+
+    activateChatWindow(chat);
+    chat.classList.remove("closed", "minimized");
+    positionChatWindows();
+
+    // If the same conversation is already open, do not reset its messages.
+    if (chat.dataset.loaded !== "true") {
+        await loadChatMessages(chat);
+        chat.dataset.loaded = "true";
+    }
+}
+
+async function loadChatMessages(chat = activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+
+    const container = chat.querySelector(".chat-messages");
+    const user = getChatWindowUser(chat);
+    if (!container || !user) return;
+
+    container.innerHTML = "";
+
+    const { data, error } = await _supabase
+        .from("messages")
+        .select("*")
+        .or(`and(user_id.eq.${currentUser.id},recipient_id.eq.${user.id}),and(user_id.eq.${user.id},recipient_id.eq.${currentUser.id})`)
+        .order("created_at", {ascending:true})
+        .limit(100);
+
+    if (error) {
+        container.innerHTML = `<div style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
+        return;
+    }
+
+    if (!data?.length) {
+        container.innerHTML = '<div style="color:#555;text-align:center;margin-top:20px;">NO MESSAGES YET</div>';
+        return;
+    }
+
+    data
+        .filter(m => !m.deleted_for?.includes(currentUser.id))
+        .forEach(m => appendChatMessage(m, m.user_id === currentUser.id ? "YOU" : user.display_name, chat));
+}
+
+function appendChatMessage(msg, senderDisplayName, chat = activeChatWindow) {
+    if (!chat) return;
+    const container = chat.querySelector(".chat-messages");
+    if (!container) return;
+
+    const isMine = msg.user_id === currentUser.id;
+    const div = document.createElement("div");
+    div.className = `message ${isMine ? "mine" : ""}`;
+    div.id = `msg-${msg.id}`;
+    div.dataset.messageId = String(msg.id);
+
+    div.oncontextmenu = e => {
+        e.preventDefault();
+        activateChatWindow(chat);
+        openMessageContext(e, msg);
+    };
+
+    const time = new Date(msg.created_at || Date.now()).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    let attachment = "";
+
+    if (msg.attachment_url) {
+        attachment = msg.attachment_type === "image"
+            ? `<img src="${msg.attachment_url}" class="chat-attachment" onclick="openLightbox('${msg.attachment_url}',false)">`
+            : `<div style="margin-top:5px;"><a href="${msg.attachment_url}" target="_blank" class="created-by-link" style="color:#00f0ff;text-decoration:none;">📁 View Attachment</a></div>`;
+    }
+
+    const reply = msg.reply_to_id ? `<div class="reply-quote">↩ Replying to a message</div>` : "";
+
+    div.innerHTML = `
+        <div class="message-header"><span class="message-name">${escapeHtml(senderDisplayName)}</span></div>
+        ${reply}
+        ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}${msg.edited_at ? '<span style="font-size:7px;color:#666;"> (edited)</span>' : ""}</div>` : ""}
+        ${attachment}
+        <div id="reactions-${msg.id}" class="reaction-row"></div>
+        <div class="message-time">${time}</div>
+    `;
+
+    container.appendChild(div);
+    renderReactions(msg.id);
+    container.scrollTop = container.scrollHeight;
+}
 
 /* =========================
    SEND MESSAGE
 ========================= */
 
-async function sendMessage(
-    attachmentUrl=null,
-    attachmentType=null
-) {
+async function sendMessage(attachmentUrl=null, attachmentType=null, chat=activeChatWindow) {
+    if (!chat) return alert("Select a friend first.");
+    activateChatWindow(chat);
 
-    if (!activeChatUser)
-        return alert(
-            "Select a friend first."
-        );
+    const user = getChatWindowUser(chat);
+    const input = chat.querySelector(".chat-input");
+    if (!user || !input) return;
 
-
-    const input =
-        document.getElementById(
-            "chatInput"
-        );
-
-
-    const text =
-        input.value.trim();
-
-
-    if (!text && !attachmentUrl)
-        return;
-
-
+    const text = input.value.trim();
+    if (!text && !attachmentUrl) return;
     input.value = "";
 
-
     let safeReplyToId = null;
-    if (replyToMessage?.id) {
+    const reply = chat._replyToMessage || null;
+    if (reply?.id) {
         const { data: replyTarget, error: replyLookupError } = await _supabase
             .from("messages")
             .select("id")
-            .eq("id", replyToMessage.id)
+            .eq("id", reply.id)
             .maybeSingle();
-
         if (replyLookupError) {
             console.warn("Reply target lookup:", replyLookupError.message);
         } else if (replyTarget?.id) {
             safeReplyToId = replyTarget.id;
         } else {
-            replyToMessage = null;
+            chat._replyToMessage = null;
         }
     }
 
     const payload = {
         user_id: currentUser.id,
-        recipient_id: activeChatUser.id,
-        text: text,
+        recipient_id: user.id,
+        text,
         attachment_url: attachmentUrl,
         attachment_type: attachmentType,
         reply_to_id: safeReplyToId
     };
 
-
-    cancelReply();
-
+    cancelReply(chat);
 
     const { data:createdMessage, error } = await _supabase.from("messages").insert([payload]).select("*").single();
     if (error) { alert("Failed to send: " + error.message); return; }
     if (createdMessage) {
-        await _supabase.channel(`user-events:${activeChatUser.id}`).send({type:"broadcast",event:"new_message",payload:{message:createdMessage,senderName:currentProfile?.display_name || currentUser.email.split("@")[0]}});
-        if (!document.getElementById(`msg-${createdMessage.id}`)) appendChatMessage(createdMessage,"YOU");
+        await _supabase.channel(`user-events:${user.id}`).send({type:"broadcast",event:"new_message",payload:{message:createdMessage,senderName:currentProfile?.display_name || currentUser.email.split("@")[0]}});
+        if (!chat.querySelector(`#msg-${CSS.escape(String(createdMessage.id))}`)) appendChatMessage(createdMessage,"YOU",chat);
     }
 }
 
@@ -4546,8 +4460,52 @@ function showRealtimeNotification(title, message, userId=null, displayName=null)
 async function setupChatRealtime(){
     if(chatChannel){_supabase.removeChannel(chatChannel);chatChannel=null;}
     if(userEventChannel){_supabase.removeChannel(userEventChannel);userEventChannel=null;}
-    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`).on("broadcast",{event:"new_message"},async({payload})=>{const m=payload?.message;if(!m||m.recipient_id!==currentUser.id)return;const name=payload.senderName||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else{realtimeMessageNotifications=[{userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id},...realtimeMessageNotifications.filter(x=>x.messageId!==m.id)];updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("broadcast",{event:"friend_request"},async({payload})=>{const r=payload?.request;if(!r||r.friend_id!==currentUser.id)return;await refreshNotifications();const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);}).on("broadcast",{event:"friend_status"},async({payload})=>{const r=payload?.request;if(!r)return;if(r.user_id!==currentUser.id && r.friend_id!==currentUser.id)return;await loadFriends();await refreshNotifications();await renderContacts();}).subscribe(status=>console.log("User events realtime:",status));
-    chatChannel=_supabase.channel(`direct-messages:${currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`recipient_id=eq.${currentUser.id}`},async payload=>{const m=payload.new;if(!m||m.recipient_id!==currentUser.id)return;const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();const name=p?.display_name||"MEMBER";if(activeChatUser?.id===m.user_id){if(!document.getElementById(`msg-${m.id}`))appendChatMessage(m,name);}else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});updateNotificationBadge();renderNotificationPanel();showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);}}).on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{const m=payload.new||payload.old;if(!m||payload.eventType==="INSERT")return;const relevant=activeChatUser&&((m.user_id===currentUser.id&&m.recipient_id===activeChatUser.id)||(m.user_id===activeChatUser.id&&m.recipient_id===currentUser.id));if(relevant)await loadChatMessages();}).subscribe(status=>console.log("Message realtime:",status));
+
+    const handleIncomingMessage = async (m) => {
+        if(!m || m.recipient_id !== currentUser.id) return;
+        const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();
+        const name=p?.display_name||"MEMBER";
+        const chat=getChatWindowByUserId(m.user_id);
+
+        if(chat && !chat.classList.contains("closed")){
+            if(!chat.querySelector(`#msg-${CSS.escape(String(m.id))}`)) appendChatMessage(m,name,chat);
+        }else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){
+            realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});
+            updateNotificationBadge();
+            renderNotificationPanel();
+            showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);
+        }
+    };
+
+    userEventChannel=_supabase.channel(`user-events:${currentUser.id}`)
+        .on("broadcast",{event:"new_message"},async({payload})=>handleIncomingMessage(payload?.message))
+        .on("broadcast",{event:"friend_request"},async({payload})=>{
+            const r=payload?.request;
+            if(!r||r.friend_id!==currentUser.id)return;
+            await refreshNotifications();
+            const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",r.user_id).maybeSingle();
+            showRealtimeNotification("🔔 FRIEND REQUEST",`${p?.display_name||"MEMBER"} sent you a friend request.`);
+        })
+        .on("broadcast",{event:"friend_status"},async({payload})=>{
+            const r=payload?.request;
+            if(!r)return;
+            if(r.user_id!==currentUser.id && r.friend_id!==currentUser.id)return;
+            await loadFriends(); await refreshNotifications(); await renderContacts();
+        })
+        .subscribe(status=>console.log("User events realtime:",status));
+
+    chatChannel=_supabase.channel(`direct-messages:${currentUser.id}`)
+        .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`recipient_id=eq.${currentUser.id}`},async payload=>handleIncomingMessage(payload.new))
+        .on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{
+            const m=payload.new||payload.old;
+            if(!m || payload.eventType==="INSERT") return;
+            for(const chat of openChatWindows.values()){
+                const u=getChatWindowUser(chat);
+                const relevant=u&&((m.user_id===currentUser.id&&m.recipient_id===u.id)||(m.user_id===u.id&&m.recipient_id===currentUser.id));
+                if(relevant) await loadChatMessages(chat);
+            }
+        })
+        .subscribe(status=>console.log("Message realtime:",status));
 }
 
 /* =========================
@@ -4570,41 +4528,26 @@ function jumpToMessage(id) {
 }
 
 
-function beginReply(msg) {
+function beginReply(msg, chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    chat._replyToMessage = msg;
 
-    replyToMessage = msg;
+    const previewText = chat.querySelector(".reply-preview-text");
+    const preview = chat.querySelector(".reply-preview");
+    const input = chat.querySelector(".chat-input");
+    const user = getChatWindowUser(chat);
 
-    document.getElementById(
-        "replyPreviewText"
-    ).innerText =
-        `Replying to ${
-            msg.user_id === currentUser.id
-            ? "YOU"
-            : activeChatUser.display_name
-        }: ${
-            (msg.text || "Attachment")
-            .slice(0,80)
-        }`;
-
-    document.getElementById(
-        "replyPreview"
-    ).classList.add("active");
-
-    document.getElementById(
-        "chatInput"
-    ).focus();
+    if (previewText) previewText.innerText = `Replying to ${msg.user_id === currentUser.id ? "YOU" : user?.display_name || "MEMBER"}: ${(msg.text || "Attachment").slice(0,80)}`;
+    if (preview) preview.classList.add("active");
+    if (input) input.focus();
 }
 
-
-function cancelReply() {
-
-    replyToMessage = null;
-
-    document.getElementById(
-        "replyPreview"
-    ).classList.remove("active");
+function cancelReply(chat=activeChatWindow) {
+    if (!chat) return;
+    chat._replyToMessage = null;
+    chat.querySelector(".reply-preview")?.classList.remove("active");
 }
-
 
 async function editMessage(msg) {
 
@@ -4972,129 +4915,81 @@ document
    EMOJI
 ========================= */
 
-function toggleEmojiPicker() {
-
-    document.getElementById(
-        "emojiPicker"
-    ).classList.toggle(
-        "active"
-    );
+function toggleEmojiPicker(chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    chat.querySelector(".emoji-picker")?.classList.toggle("active");
 }
 
-
-function addEmoji(emoji) {
-
-    const input =
-        document.getElementById(
-            "chatInput"
-        );
-
+function addEmoji(emoji, chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    const input=chat.querySelector(".chat-input");
+    if (!input) return;
     input.value += emoji;
-
-    document.getElementById(
-        "emojiPicker"
-    ).classList.remove(
-        "active"
-    );
-
+    chat.querySelector(".emoji-picker")?.classList.remove("active");
     input.focus();
 }
 
-
-function triggerFileSelect() {
-
-    document.getElementById(
-        "chatFileInput"
-    ).click();
+function triggerFileSelect(chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    chat.querySelector(".chat-file-input")?.click();
 }
-
 
 async function sendChatFile(input) {
+    const chat=input?.closest(".chat-window");
+    if (!chat) return;
+    activateChatWindow(chat);
 
-    if (!activeChatUser)
-        return alert(
-            "Select a friend first."
-        );
+    if (!input.files?.length) return;
+    const file=input.files[0];
+    const ext=file.name.split(".").pop();
+    const path=`chat_files/${currentUser.id}_${Date.now()}.${ext}`;
 
+    const { error:uploadError }=await _supabase.storage.from(BUCKET_NAME).upload(path,file);
+    if (uploadError) return alert("Attachment Failed: " + uploadError.message);
 
-    if (!input.files?.length)
-        return;
-
-
-    const file =
-        input.files[0];
-
-
-    const ext =
-        file.name.split(".").pop();
-
-
-    const path =
-        `chat_files/${currentUser.id}_${Date.now()}.${ext}`;
-
-
-    const { error:uploadError } =
-        await _supabase
-            .storage
-            .from(BUCKET_NAME)
-            .upload(path,file);
-
-
-    if (uploadError)
-        return alert(
-            "Attachment Failed: " +
-            uploadError.message
-        );
-
-
-    const { data } =
-        _supabase
-            .storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(path);
-
-
-    await sendMessage(
-        data.publicUrl,
-        file.type.startsWith("image")
-        ? "image"
-        : "file"
-    );
-
-
-    input.value = "";
+    const { data }=_supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+    await sendMessage(data.publicUrl,file.type.startsWith("image") ? "image" : "file",chat);
+    input.value="";
 }
-
 
 /* =========================
    CHAT WINDOW
 ========================= */
 
-function minimizeChat() {
-
-    document
-        .getElementById("chatWindow")
-        .classList.add("minimized");
+function minimizeChat(chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    chat.classList.add("minimized");
+    chat.querySelector(".emoji-picker")?.classList.remove("active");
+    positionChatWindows();
 }
 
-
-function closeChat() {
-
-    const chat =
-        document.getElementById(
-            "chatWindow"
-        );
-
-    chat.classList.remove(
-        "open",
-        "minimized"
-    );
-
-    chat.classList.add("closed");
-
-    activeChatUser = null;
+function restoreChat(chat=activeChatWindow) {
+    if (!chat) return;
+    activateChatWindow(chat);
+    chat.classList.remove("minimized", "closed");
+    positionChatWindows();
 }
 
+function closeChat(chat=activeChatWindow) {
+    if (!chat) return;
+    const key=chat.dataset.userId;
+    openChatWindows.delete(String(key));
+    if (activeChatWindow===chat) {
+        activeChatWindow=null;
+        activeChatUser=null;
+    }
+    chat.remove();
+    positionChatWindows();
+
+    const remaining=Array.from(openChatWindows.values());
+    if (remaining.length) activateChatWindow(remaining[remaining.length-1]);
+}
+
+window.addEventListener("resize", positionChatWindows);
 
 /* =========================
    FRIEND PROFILE
