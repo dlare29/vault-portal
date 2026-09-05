@@ -702,6 +702,61 @@ header {
     flex-wrap:wrap;
 }
 
+/* =========================
+   VAULT MEDIA SELECTION / FOLDER BUILDER
+========================= */
+.vault-upload-builder{
+    margin:12px 0 18px;
+    padding:14px;
+    background:#10151c;
+    border:1px solid #26303b;
+    border-radius:10px;
+    box-shadow:0 8px 25px rgba(0,0,0,.22);
+}
+.vault-builder-title{
+    color:#00f0ff;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1.2px;
+    margin-bottom:12px;
+}
+.vault-selected-media{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:14px;
+}
+.vault-selected-item{
+    width:92px;
+    height:92px;
+    position:relative;
+    overflow:hidden;
+    border-radius:8px;
+    border:1px solid #263746;
+    background:#080c11;
+}
+.vault-selected-item img,.vault-selected-item video{
+    width:100%;height:100%;object-fit:cover;display:block;
+}
+.vault-selected-type{
+    position:absolute;left:4px;bottom:4px;
+    padding:2px 5px;border-radius:4px;
+    background:rgba(0,0,0,.72);color:#fff;font-size:8px;
+}
+.vault-folder-fields{display:grid;gap:6px;max-width:620px;}
+.vault-folder-fields label{font-size:8px;color:#71808f;letter-spacing:1px;margin-top:4px;}
+.vault-folder-fields input,.vault-folder-fields textarea{
+    width:100%;box-sizing:border-box;
+    background:#0b1016;color:#fff;border:1px solid #293743;
+    border-radius:6px;padding:9px;font-size:11px;outline:none;resize:vertical;
+}
+.vault-folder-fields input:focus,.vault-folder-fields textarea:focus{border-color:#00f0ff;}
+.vault-builder-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.vault-builder-actions .btn{margin:0;}
+@media(max-width:600px){
+    .vault-selected-item{width:76px;height:76px;}
+}
+
 #path-display {
     font-size:11px;
     color:#888;
@@ -776,6 +831,7 @@ header {
 .vault-back-btn:hover{box-shadow:0 0 8px #00f0ff55;}
 .folder-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 14px;}
 .folder-delete-btn{z-index:3;}
+.folder-description{font-size:8px;color:#707b86;line-height:1.3;margin:3px 3px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 @media(max-width:600px){
     #path-display{width:100%;margin-left:0;margin-top:4px;}
     .vault-actions{align-items:flex-start;}
@@ -1601,8 +1657,7 @@ input:checked + .slider:before {
 
 .folder-card{min-width:0;}
 .folder-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.folder-delete-btn{position:absolute;top:5px;right:5px;}
-.vault-back-btn{display:none;}
+
 
 /* =========================
    RESPONSIVE
@@ -1826,6 +1881,55 @@ input:checked + .slider:before {
 .status-post-media{display:block;max-width:min(420px,100%);max-height:360px;margin:8px 0;border-radius:8px;border:1px solid #20252d;object-fit:contain;background:#0d0f12}
 .status-comment-media{display:block;max-width:min(320px,100%);max-height:260px;margin-top:6px;border-radius:7px;border:1px solid #20252d;object-fit:contain;background:#0d0f12}
 .status-comment-attach{user-select:none}
+</style>
+
+<style id="vault-folder-options-fix">
+.vault-back-btn{
+    margin-left:10px;
+    background:transparent;
+    border:1px solid #00f0ff55;
+    color:#00f0ff;
+    border-radius:4px;
+    padding:3px 7px;
+    font-size:8px;
+    cursor:pointer;
+}
+.vault-back-btn:hover{box-shadow:0 0 8px #00f0ff55;}
+.vault-folder-actions{
+    grid-column:1 / -1;
+    width:100%;
+    box-sizing:border-box;
+    margin-top:12px;
+    padding:10px;
+    background:#11151b;
+    border:1px solid #2b333d;
+    border-radius:6px;
+    text-align:center;
+}
+.vault-folder-actions-title{
+    color:#777;
+    font-size:9px;
+    letter-spacing:1.5px;
+    margin-bottom:8px;
+}
+.vault-folder-actions-buttons{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+}
+.vault-folder-save-btn,.vault-folder-delete-btn{
+    border:1px solid #00f0ff;
+    background:#161a21;
+    color:#00f0ff;
+    border-radius:4px;
+    padding:7px 14px;
+    font-size:10px;
+    font-weight:bold;
+    cursor:pointer;
+}
+.vault-folder-delete-btn{border-color:#ff4a4a;color:#ff4a4a;}
+.vault-folder-save-btn:hover{background:#00f0ff;color:#000;}
+.vault-folder-delete-btn:hover{background:#ff4a4a;color:#fff;}
 </style>
 </head>
 
@@ -2072,17 +2176,30 @@ input:checked + .slider:before {
            id="media-input"
            multiple
            accept="image/*,video/*"
-           style="display:none;">
+           style="display:none;"
+           onchange="handleVaultMediaSelection(this)">
 
     <button class="btn" type="button" onclick="document.getElementById('media-input').click()">
-        📷 UPLOAD PHOTO / VIDEO
-    </button>
-
-    <button class="btn" type="button" id="upload-btn" onclick="addMemories()">
-        POST MEDIA
+        📷 SELECT PHOTO / VIDEO
     </button>
 
     <span id="upload-status" style="font-size:10px;color:#00f0ff;"></span>
+</div>
+
+<!-- Selected media becomes the folder creation area automatically. -->
+<div id="vault-upload-builder" class="vault-upload-builder" style="display:none;">
+    <div class="vault-builder-title">CREATE FOLDER FROM SELECTED MEDIA</div>
+    <div id="vault-selected-media" class="vault-selected-media"></div>
+    <div id="vault-folder-fields" class="vault-folder-fields">
+        <label>FOLDER NAME</label>
+        <input id="vault-folder-name" type="text" maxlength="80" placeholder="Enter folder name...">
+        <label>DESCRIPTION</label>
+        <textarea id="vault-folder-description" maxlength="500" rows="3" placeholder="Enter folder description..."></textarea>
+    </div>
+    <div class="vault-builder-actions">
+        <button class="btn" type="button" onclick="cancelVaultMediaSelection()">CANCEL</button>
+        <button class="btn" type="button" id="upload-btn" onclick="addMemories()">CREATE FOLDER &amp; UPLOAD</button>
+    </div>
 </div>
 
 <div id="gallery"
@@ -3482,6 +3599,7 @@ async function deleteStatus(id) {
 
 function switchMediaTab(type) {
     // Photos/Videos are always entry points. Never reopen the last folder.
+    if (typeof cancelVaultMediaSelection === "function") cancelVaultMediaSelection();
     currentMediaType = type;
     currentFolderId = null;
     currentFolderName = "";
@@ -3614,10 +3732,11 @@ async function loadGallery() {
                 ? `<video class="folder-preview-media" src="${folderPreview.public_url}" muted preload="metadata"></video>`
                 : `<img class="folder-preview-media" src="${folderPreview.public_url}" alt="${escapeHtml(folder.name)}">`)
             : `<div class="folder-preview-empty">NO PREVIEW</div>`;
+        const folderDescription = String(folder.description || getVaultFolderDescription(folder.id) || "").trim();
         card.innerHTML = `
             <div class="folder-preview">${previewHtml}</div>
             <div class="folder-title" title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</div>
-            <button class="del-btn folder-delete-btn" title="Delete folder" onclick="event.stopPropagation();deleteFolder('${folder.id}')">✕</button>
+            ${folderDescription ? `<div class="folder-description" title="${escapeHtml(folderDescription)}">${escapeHtml(folderDescription)}</div>` : ""}
         `;
         gallery.appendChild(card);
     });
@@ -3640,6 +3759,20 @@ async function loadGallery() {
         gallery.appendChild(card);
     });
 
+    // Folder actions are shown ONLY after opening a folder, below its media.
+    // There is deliberately no delete X on the folder card.
+    if (folderIdAtStart) {
+        const folderActions = document.createElement("div");
+        folderActions.className = "vault-folder-actions";
+        folderActions.innerHTML = `
+            <div class="vault-folder-actions-title">FOLDER OPTIONS</div>
+            <div class="vault-folder-actions-buttons">
+                <button class="vault-folder-save-btn" type="button" onclick="editFolderDetails()">💾 SAVE</button>
+                <button class="vault-folder-delete-btn" type="button" onclick="deleteFolder(currentFolderId)">🗑 DELETE</button>
+            </div>`;
+        gallery.appendChild(folderActions);
+    }
+
     if (mediaError) {
         const err = document.createElement("div");
         err.style.cssText="grid-column:1/-1;text-align:center;color:#ff4a4a;font-size:10px;padding:20px;";
@@ -3652,7 +3785,40 @@ async function loadGallery() {
     }
 }
 
+async function editFolderDetails() {
+    if (!currentUser || !currentFolderId) return;
+    const { data: folder, error } = await _supabase.from("folders").select("*").eq("id", currentFolderId).eq("user_id", currentUser.id).maybeSingle();
+    if (error) return alert("Could not load folder: " + error.message);
+    if (!folder) return alert("Folder not found.");
+
+    const newName = prompt("FOLDER NAME:", folder.name || currentFolderName || "FOLDER");
+    if (newName === null) return;
+    const cleanName = newName.trim().slice(0, 80);
+    if (!cleanName) return alert("Folder name cannot be empty.");
+
+    const currentDescription = String(folder.description || getVaultFolderDescription(currentFolderId) || "");
+    const newDescription = prompt("FOLDER DESCRIPTION:", currentDescription);
+    if (newDescription === null) return;
+    const cleanDescription = newDescription.trim().slice(0, 500);
+
+    let result = await _supabase.from("folders").update({name:cleanName,description:cleanDescription}).eq("id",currentFolderId).eq("user_id",currentUser.id);
+    if (result.error && /description|column/i.test(result.error.message || "")) {
+        result = await _supabase.from("folders").update({name:cleanName}).eq("id",currentFolderId).eq("user_id",currentUser.id);
+    }
+    if (result.error) return alert("Could not save folder: " + result.error.message);
+
+    currentFolderName = cleanName;
+    saveVaultFolderDescription(currentFolderId,cleanDescription);
+    Object.keys(vaultFoldersCache).forEach(key => {
+        vaultFoldersCache[key] = (vaultFoldersCache[key] || []).map(f => f.id === currentFolderId ? {...f,name:cleanName,description:cleanDescription} : f);
+    });
+    updateVaultPath();
+    await loadGallery();
+    alert("Folder information saved.");
+}
+
 function openFolder(folderId,folderName) {
+    if (typeof cancelVaultMediaSelection === "function") cancelVaultMediaSelection();
     currentFolderId = folderId;
     currentFolderName = folderName || "FOLDER";
     updateVaultPath();
@@ -3726,68 +3892,192 @@ async function deleteFolder(id) {
     await loadGallery();
 }
 
-async function addMemories() {
-    const input = document.getElementById("media-input");
+let vaultSelectedFiles = [];
+
+function handleVaultMediaSelection(input) {
+    vaultSelectedFiles = Array.from(input?.files || []);
+    const builder = document.getElementById("vault-upload-builder");
+    const selected = document.getElementById("vault-selected-media");
+    const fields = document.getElementById("vault-folder-fields");
     const button = document.getElementById("upload-btn");
     const status = document.getElementById("upload-status");
-    if (!input?.files?.length) return alert("Select photo/video first.");
-    if (!currentUser) return;
 
-    const files = Array.from(input.files);
-    const uploadFolderId = currentFolderId;
-    button.disabled = true;
-    status.innerText = "UPLOADING...";
+    if (!vaultSelectedFiles.length) {
+        if (builder) builder.style.display = "none";
+        if (selected) selected.innerHTML = "";
+        return;
+    }
 
-    try {
-        let destinationFolderId = uploadFolderId;
+    if (builder) builder.style.display = "block";
+    if (fields) fields.style.display = currentFolderId ? "none" : "grid";
+    if (button) button.textContent = currentFolderId ? "UPLOAD TO THIS FOLDER" : "CREATE FOLDER & UPLOAD";
+    if (status) status.textContent = `${vaultSelectedFiles.length} media selected`;
 
-        // At MAIN VAULT, every new media upload gets its own automatic folder.
-        // No NEW FOLDER button and no caption field are needed.
-        if (!destinationFolderId) {
-            const hasPhoto = files.some(f => f.type.startsWith("image/"));
-            const hasVideo = files.some(f => f.type.startsWith("video/"));
-            const kind = hasPhoto && hasVideo ? "MEDIA" : (hasVideo ? "VIDEO" : "PHOTO");
-            const stamp = new Date().toLocaleDateString("en-US", {year:"numeric",month:"short",day:"numeric"});
-            const folderName = `${kind} • ${stamp}`;
+    if (selected) {
+        selected.innerHTML = "";
+        vaultSelectedFiles.forEach((file, index) => {
+            const item = document.createElement("div");
+            item.className = "vault-selected-item";
+            const isVideo = file.type.startsWith("video/");
+            const url = URL.createObjectURL(file);
+            item.innerHTML = isVideo
+                ? `<video src="${url}" muted preload="metadata"></video><span class="vault-selected-type">VIDEO</span>`
+                : `<img src="${url}" alt="Selected photo ${index + 1}"><span class="vault-selected-type">PHOTO</span>`;
+            item.querySelector(isVideo ? "video" : "img")?.addEventListener("load", () => {
+                if (isVideo) return;
+                // Keep the object URL alive until the selection is cancelled/uploaded.
+            });
+            selected.appendChild(item);
+        });
+    }
 
-            const { data:folder, error:folderError } = await _supabase
-                .from("folders")
-                .insert([{name:folderName, parent_id:null, user_id:currentUser.id}])
-                .select("*")
-                .maybeSingle();
-
-            if (folderError) throw new Error("Could not create media folder: " + folderError.message);
-            destinationFolderId = folder.id;
-            const key = vaultFolderCacheKey(null);
-            const list = vaultFoldersCache[key] || [];
-            vaultFoldersCache[key] = [...list, folder];
-            setVaultFolderType(folder.id, hasPhoto && hasVideo ? currentMediaType : (hasVideo ? "video" : "photo"));
-        }
-
-        for (const file of files) {
-            try {
-                const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/folder_${destinationFolderId}`);
-                const { error } = await _supabase.from("memories").insert([{
-                    user_id:currentUser.id,
-                    folder_id:destinationFolderId,
-                    public_url:result.secure_url,
-                    storage_path:`cloudinary:${result.public_id}`,
-                    file_type:file.type,
-                    caption:""
-                }]);
-                if (error) alert("Could not save media: " + error.message);
-            } catch(e) { alert("Upload Failed: " + (e.message || "Cloudinary error")); }
-        }
-    } catch (e) {
-        alert(e.message || "Upload failed.");
-    } finally {
-        button.disabled = false;
-        input.value = "";
-        status.innerText = "";
-        await loadGallery();
+    if (!currentFolderId) {
+        setTimeout(() => document.getElementById("vault-folder-name")?.focus(), 50);
     }
 }
 
+function cancelVaultMediaSelection() {
+    vaultSelectedFiles = [];
+    const input = document.getElementById("media-input");
+    const builder = document.getElementById("vault-upload-builder");
+    const selected = document.getElementById("vault-selected-media");
+    const status = document.getElementById("upload-status");
+    if (input) input.value = "";
+    if (builder) builder.style.display = "none";
+    if (selected) selected.innerHTML = "";
+    if (status) status.textContent = "";
+    const name = document.getElementById("vault-folder-name");
+    const desc = document.getElementById("vault-folder-description");
+    if (name) name.value = "";
+    if (desc) desc.value = "";
+}
+
+function saveVaultFolderDescription(folderId, description) {
+    if (!folderId) return;
+    try {
+        const map = JSON.parse(localStorage.getItem("vault_folder_descriptions_v1") || "{}");
+        map[folderId] = String(description || "").trim().slice(0, 500);
+        localStorage.setItem("vault_folder_descriptions_v1", JSON.stringify(map));
+    } catch (_) {}
+}
+
+function getVaultFolderDescription(folderId) {
+    try {
+        const map = JSON.parse(localStorage.getItem("vault_folder_descriptions_v1") || "{}");
+        return map[folderId] || "";
+    } catch (_) { return ""; }
+}
+
+async function addMemories() {
+    const button = document.getElementById("upload-btn");
+    const status = document.getElementById("upload-status");
+    if (!currentUser) return alert("Please log in again.");
+
+    const files = vaultSelectedFiles.length
+        ? vaultSelectedFiles.slice()
+        : Array.from(document.getElementById("media-input")?.files || []);
+
+    if (!files.length) return alert("Select photo/video first.");
+
+    if (button) button.disabled = true;
+    if (status) status.innerText = "PREPARING...";
+
+    try {
+        let destinationFolderId = currentFolderId;
+
+        // At MAIN VAULT: create the folder first using the title/description
+        // entered beside the selected thumbnails, then upload into that folder.
+        if (!destinationFolderId) {
+            const nameInput = document.getElementById("vault-folder-name");
+            const descInput = document.getElementById("vault-folder-description");
+            const folderName = String(nameInput?.value || "").trim().slice(0, 80);
+            const folderDescription = String(descInput?.value || "").trim().slice(0, 500);
+
+            if (!folderName) {
+                if (nameInput) nameInput.focus();
+                return alert("Enter a folder name first.");
+            }
+
+            if (status) status.innerText = "CREATING FOLDER...";
+
+            // Try saving description when the database has the column. If the
+            // existing schema does not have it, fall back to the known schema.
+            let folderResult = await _supabase.from("folders")
+                .insert([{
+                    name: folderName,
+                    parent_id: null,
+                    user_id: currentUser.id,
+                    description: folderDescription
+                }])
+                .select("*")
+                .maybeSingle();
+
+            if (folderResult.error && /description|column/i.test(folderResult.error.message || "")) {
+                folderResult = await _supabase.from("folders")
+                    .insert([{
+                        name: folderName,
+                        parent_id: null,
+                        user_id: currentUser.id
+                    }])
+                    .select("*")
+                    .maybeSingle();
+            }
+
+            if (folderResult.error) throw new Error("Could not create folder: " + folderResult.error.message);
+            destinationFolderId = folderResult.data?.id;
+            if (!destinationFolderId) throw new Error("Folder was created but no folder ID was returned.");
+
+            saveVaultFolderDescription(destinationFolderId, folderDescription);
+            setVaultFolderType(destinationFolderId, files.some(f => f.type.startsWith("video/")) && files.some(f => f.type.startsWith("image/")) ? "photo" : (files.some(f => f.type.startsWith("video/")) ? "video" : "photo"));
+
+            const key = vaultFolderCacheKey(null);
+            const list = vaultFoldersCache[key] || [];
+            if (!list.some(f => f.id === destinationFolderId)) {
+                vaultFoldersCache[key] = [...list, folderResult.data];
+            }
+        }
+
+        if (status) status.innerText = `UPLOADING 0/${files.length}...`;
+        let uploaded = 0;
+
+        for (const file of files) {
+            const result = await uploadToCloudinary(
+                file,
+                `vault-messenger/${currentUser.id}/folder_${destinationFolderId}`
+            );
+
+            const { error } = await _supabase.from("memories").insert([{
+                user_id: currentUser.id,
+                folder_id: destinationFolderId,
+                public_url: result.secure_url,
+                storage_path: `cloudinary:${result.public_id}`,
+                file_type: file.type,
+                caption: ""
+            }]);
+
+            if (error) throw new Error("Could not save media: " + error.message);
+            uploaded++;
+            if (status) status.innerText = `UPLOADING ${uploaded}/${files.length}...`;
+        }
+
+        if (!currentFolderId) {
+            currentFolderName = "";
+        }
+        updateVaultPath();
+        cancelVaultMediaSelection();
+        await loadGallery();
+        alert(`Folder created and ${uploaded} media file${uploaded === 1 ? "" : "s"} uploaded successfully.`);
+    } catch (e) {
+        alert(e.message || "Upload failed.");
+        if (status) status.innerText = "UPLOAD FAILED";
+    } finally {
+        if (button) button.disabled = false;
+        if (!vaultSelectedFiles.length) {
+            const input = document.getElementById("media-input");
+            if (input) input.value = "";
+        }
+    }
+}
 
 
 async function updateCaption(id,caption) {
