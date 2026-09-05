@@ -316,7 +316,7 @@ header {
 }
 
 
-.home-search-nav-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.72fr);gap:14px;align-items:start;margin-bottom:14px;}
+.home-search-nav-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.72fr);gap:7px;align-items:start;margin-bottom:14px;}
 .home-main-panel{min-width:0;}
 .home-user-search-panel{background:#161a21;border:1px solid #222;border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.18);padding:24px;min-height:100%;}
 .home-user-search{width:100%;background:#0d0f12;border:1px solid #333;color:#fff;padding:10px;border-radius:6px;outline:none;font-size:11px;}
@@ -400,7 +400,7 @@ header {
 .status-feed {
     display:flex;
     flex-direction:column;
-    gap:12px;
+    gap:7px;
 }
 
 .status-card {
@@ -766,7 +766,7 @@ header {
 .gallery {
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-    gap:15px;
+    gap:5mm;
 }
 
 .folder-card,
@@ -835,7 +835,7 @@ header {
 @media(max-width:600px){
     #path-display{width:100%;margin-left:0;margin-top:4px;}
     .vault-actions{align-items:flex-start;}
-    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:5mm;}
     .folder-card{min-height:0;padding:8px;}
     .folder-card>div:first-child{font-size:26px!important;}
 }
@@ -1930,6 +1930,42 @@ input:checked + .slider:before {
 .vault-folder-delete-btn{border-color:#ff4a4a;color:#ff4a4a;}
 .vault-folder-save-btn:hover{background:#00f0ff;color:#000;}
 .vault-folder-delete-btn:hover{background:#ff4a4a;color:#fff;}
+</style>
+<style id="vault-folder-compact-fix">
+/* FOLDER CARDS: approximately 35% smaller visually, while media cards keep their current size */
+.gallery .folder-card{
+    width:65%;
+    justify-self:center;
+    box-sizing:border-box;
+    min-height:0;
+    padding:3px;
+    /* Pull the compact folder boundary out to the edges of its grid track.
+       This removes the visual whitespace between neighboring folder cards
+       without changing the preview's compact 35% visual size. */
+    margin-left:-17.5%;
+    margin-right:-17.5%;
+}
+.gallery .folder-card .folder-preview{width:100%;}
+.gallery .folder-card .folder-title{font-size:8px !important;margin-top:3px;}
+.gallery .folder-card .folder-description{font-size:7px;margin-top:2px;}
+@media(max-width:600px){
+    .gallery .folder-card{width:65%;padding:5px;}
+    .gallery .folder-card>div:first-child{font-size:18px!important;}
+}
+</style>
+
+<style id="vault-folder-boundary-fix">
+/* Folder boundaries should sit close together: the old 65% cards were centered
+   inside wider grid tracks, which created the large apparent gaps. */
+.gallery .folder-card{gap:0;}
+@media(min-width:601px){
+  .gallery{column-gap:0 !important;}
+  .gallery .folder-card{margin-left:-17.5% !important;margin-right:-17.5% !important;}
+}
+@media(max-width:600px){
+  .gallery{column-gap:0 !important;}
+  .gallery .folder-card{margin-left:-17.5% !important;margin-right:-17.5% !important;}
+}
 </style>
 </head>
 
@@ -4039,6 +4075,7 @@ async function addMemories() {
 
         if (status) status.innerText = `UPLOADING 0/${files.length}...`;
         let uploaded = 0;
+        const uploadedMedia = [];
 
         for (const file of files) {
             const result = await uploadToCloudinary(
@@ -4056,8 +4093,46 @@ async function addMemories() {
             }]);
 
             if (error) throw new Error("Could not save media: " + error.message);
+            uploadedMedia.push({ url: result.secure_url, type: file.type || "", name: file.name || "" });
             uploaded++;
             if (status) status.innerText = `UPLOADING ${uploaded}/${files.length}...`;
+        }
+
+        // Automatically publish every uploaded Vault media item as a status.
+        // The same status card is immediately shown in both Home and Profile.
+        if (uploadedMedia.length) {
+            if (status) status.innerText = "PUBLISHING TO STATUS...";
+            for (const media of uploadedMedia) {
+                const statusContent = `${currentFolderName || document.getElementById("vault-folder-name")?.value?.trim() || "VAULT"}`;
+                const { data: statusPost, error: statusError } = await _supabase.from("status_posts")
+                    .insert([{
+                        user_id: currentUser.id,
+                        content: statusContent,
+                        media_url: media.url,
+                        media_type: media.type
+                    }])
+                    .select("*").single();
+
+                if (statusError) {
+                    console.error("Automatic Vault status failed:", statusError);
+                    continue;
+                }
+
+                const post = statusPost || {
+                    id: "local-" + Date.now(),
+                    user_id: currentUser.id,
+                    content: statusContent,
+                    media_url: media.url,
+                    media_type: media.type,
+                    created_at: new Date().toISOString()
+                };
+                const card = renderStatusCard(post, currentProfile || {}, {}, {}, {});
+                [document.getElementById("home-feed"), document.getElementById("profile-feed")].forEach(feed => {
+                    if (!feed) return;
+                    feed.querySelector(".status-empty")?.remove();
+                    feed.insertAdjacentHTML("afterbegin", card);
+                });
+            }
         }
 
         if (!currentFolderId) {
@@ -4066,7 +4141,10 @@ async function addMemories() {
         updateVaultPath();
         cancelVaultMediaSelection();
         await loadGallery();
-        alert(`Folder created and ${uploaded} media file${uploaded === 1 ? "" : "s"} uploaded successfully.`);
+        loadStatuses().catch(err => console.error("Status refresh error:", err));
+        alert(`Folder created and ${uploaded} media file${uploaded === 1 ? "" : "s"} uploaded successfully.
+
+The uploaded media was also posted automatically to Home and Profile Status.`);
     } catch (e) {
         alert(e.message || "Upload failed.");
         if (status) status.innerText = "UPLOAD FAILED";
@@ -6528,3 +6606,17 @@ document.addEventListener("DOMContentLoaded", () => {
 </body>
 </html>
 
+
+<style id="vault-folder-final-fix">
+.folder-card{margin:0 !important;}
+.folder-card .folder-preview{min-height:58px !important;}
+.folder-card .folder-title{font-size:10px !important;}
+.folder-card .posted-badge,.folder-card .folder-posted,.folder-card [class*="posted"],.folder-card [class*="POSTED"]{display:none !important;}
+</style>
+<script>
+(function(){
+ const clean=()=>document.querySelectorAll('.folder-card').forEach(c=>c.querySelectorAll('.posted-badge,.folder-posted,[class*="posted"],[class*="POSTED"]').forEach(x=>x.remove()));
+ new MutationObserver(clean).observe(document.body,{childList:true,subtree:true});
+ clean();
+})();
+</script>
