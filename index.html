@@ -5020,8 +5020,7 @@ async function loadChatMessages(chat = activeChatWindow) {
         .from("messages")
         .select("*")
         .or(`and(user_id.eq.${currentUser.id},recipient_id.eq.${user.id}),and(user_id.eq.${user.id},recipient_id.eq.${currentUser.id})`)
-        .order("created_at", {ascending:true})
-        .limit(100);
+        .order("created_at", {ascending:true});
 
     if (error) {
         container.innerHTML = `<div style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
