@@ -2064,6 +2064,24 @@ input:checked + .slider:before {
         👤 PROFILE / VAULT
     </button>
 
+    <div class="message-wrap">
+        <button class="nav-link message-nav-btn"
+                id="messageButton"
+                onclick="toggleMessageHistoryMenu(event)"
+                title="Messages">
+            💬 MESSAGE
+            <span id="messageHistoryBadge" class="notification-badge">0</span>
+        </button>
+
+        <div id="messageHistoryMenu" class="message-history-menu">
+            <div class="message-menu-title">💬 RECENT MESSAGES</div>
+            <div id="messageHistoryMenuList" class="message-menu-list">
+                <div class="message-history-empty">LOADING MESSAGES...</div>
+            </div>
+            <button class="message-view-all" type="button" onclick="openAllMessageHistory(event)">VIEW ALL MESSAGES</button>
+        </div>
+    </div>
+
     <div class="notification-wrap">
         <button class="nav-link notification-btn"
                 id="notificationButton"
@@ -2263,21 +2281,64 @@ input:checked + .slider:before {
 </div>
 
 <!-- =========================
+     MESSAGE HISTORY / INBOX
+========================= -->
+<div id="page-messages" class="page-content social-page message-history-page">
+    <div class="message-history-card">
+        <div class="message-history-head">
+            <div>
+                <div class="message-history-title">💬 MESSAGE HISTORY</div>
+                <div class="message-history-subtitle">Your recent conversations</div>
+            </div>
+            <div class="message-history-head-actions">
+                <button class="btn" type="button" onclick="loadMessageHistory()">↻ REFRESH</button>
+                <button class="btn message-history-close-btn" type="button" onclick="closeAllMessageHistory()" title="Close">✕</button>
+            </div>
+        </div>
+
+        <div id="messageHistoryListView">
+            <div class="message-history-search-wrap">
+                <input id="messageHistorySearch" class="message-history-search" type="text"
+                       placeholder="🔍 Search conversations..." oninput="renderMessageHistory(this.value)">
+            </div>
+            <div id="messageHistoryList" class="message-history-list">
+                <div class="message-history-empty">LOADING MESSAGES...</div>
+            </div>
+        </div>
+
+        <div id="messageHistoryConversationView" class="message-history-conversation-view" style="display:none;">
+            <div class="message-history-conversation-head">
+                <button class="btn" type="button" onclick="backToMessageHistoryList()">← BACK</button>
+                <div class="message-history-conversation-user">
+                    <span id="messageHistoryConversationName">MEMBER</span>
+                    <small>CONVERSATION</small>
+                </div>
+            </div>
+            <div id="messageHistoryConversationMessages" class="message-history-conversation-messages">
+                <div class="message-history-empty">LOADING CONVERSATION...</div>
+            </div>
+            <div class="message-history-composer">
+                <input id="messageHistoryConversationInput" type="text" placeholder="Type a message..."
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessageHistoryMessage();}">
+                <button class="btn" type="button" onclick="sendMessageHistoryMessage()">SEND</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
      CONTACT PANEL
 ========================= -->
 
 <div id="onlinePanel">
 
-<div class="online-header">
+<div class="online-header"
+     onclick="toggleOnlinePanel()"
+     title="Click to minimize or restore contacts">
 
     <span id="onlineCount">
         CONTACTS
     </span>
-
-    <button class="panel-min-btn"
-            onclick="toggleOnlinePanel()">
-        —
-    </button>
 
 </div>
 
@@ -2839,6 +2900,10 @@ function switchPage(pageName) {
         loadGallery();
     }
 
+    if (pageName === "messages") {
+        loadMessageHistory();
+    }
+
     loadStatuses();
 }
 
@@ -2956,6 +3021,7 @@ async function handleAuthSuccess(user) {
     await loadStatuses();
     await loadFriends();
     await refreshNotifications();
+    await loadMessageHistory();
 }
 
 
@@ -4275,7 +4341,19 @@ async function loadFriendRequests() {
 }
 async function refreshNotifications(){await loadFriendRequests();renderNotificationPanel();}
 function updateNotificationBadge(){const b=document.getElementById("notificationBadge");if(!b)return;const c=pendingRequestsCache.length+realtimeMessageNotifications.length;b.innerText=c>99?"99+":String(c);b.style.display=c?"inline-block":"none";}
-function renderNotificationPanel(){const l=document.getElementById("notificationList");if(!l)return;const a=[];pendingRequestsCache.forEach(({request,profile})=>a.push(`<div class="notification-item"><div class="notification-text"><b>${escapeHtml(profile.display_name||"MEMBER")}</b><br>sent you a friend request.</div><div class="friend-request-actions"><button class="btn" onclick="respondFriendRequest('${request.id}','accepted')">ACCEPT</button><button class="btn" style="border-color:#ff4a4a;color:#ff4a4a;" onclick="respondFriendRequest('${request.id}','declined')">DECLINE</button></div></div>`));realtimeMessageNotifications.forEach(n=>a.push(`<div class="notification-item" style="cursor:pointer" onclick="openNotificationMessage('${n.userId}')"><div class="notification-text"><b>💬 ${escapeHtml(n.name||"MEMBER")}</b><br>${escapeHtml(n.text||"Sent you a message.")}</div></div>`));l.innerHTML=a.length?a.join(""):"<div class=\"notification-empty\">NO NEW NOTIFICATIONS</div>";}
+function renderNotificationPanel(){
+    const l=document.getElementById("notificationList");
+    if(!l)return;
+    const a=[];
+    pendingRequestsCache.forEach(({request,profile})=>a.push(`<div class="notification-item"><div class="notification-text"><b>${escapeHtml(profile.display_name||"MEMBER")}</b><br>sent you a friend request.</div><div class="friend-request-actions"><button class="btn" onclick="respondFriendRequest('${request.id}','accepted')">ACCEPT</button><button class="btn" style="border-color:#ff4a4a;color:#ff4a4a;" onclick="respondFriendRequest('${request.id}','declined')">DECLINE</button></div></div>`));
+    realtimeMessageNotifications.forEach(n=>{
+        const friendProfile=(Array.isArray(friendsCache)?friendsCache:[]).find(p=>String(p.id)===String(n.userId));
+        const name=n.name && n.name!=="MEMBER" ? n.name : (friendProfile?.display_name || "MEMBER");
+        n.name=name;
+        a.push(`<div class="notification-item" style="cursor:pointer" onclick="openNotificationMessage('${n.userId}')"><div class="notification-text"><b>💬 ${escapeHtml(name)}</b><br>${escapeHtml(n.text||"Sent you a message.")}</div></div>`);
+    });
+    l.innerHTML=a.length?a.join(""):"<div class=\"notification-empty\">NO NEW NOTIFICATIONS</div>";
+}
 async function openNotificationMessage(userId){const n=realtimeMessageNotifications.find(x=>x.userId===userId);realtimeMessageNotifications=realtimeMessageNotifications.filter(x=>x.userId!==userId);updateNotificationBadge();renderNotificationPanel();await selectChatUser(userId,n?.name||"MEMBER");}
 
 async function toggleNotificationPanel() {
@@ -4871,7 +4949,9 @@ function positionChatWindows() {
         .filter(w => w && !w.classList.contains("closed"));
 
     const gap = 10;
-    const rightBase = window.innerWidth <= 600 ? 10 : 195;
+    // The Online Friends panel is 210px wide and sits 20px from the right.
+    // Keep floating chat windows completely to its LEFT so they never overlap.
+    const rightBase = window.innerWidth <= 600 ? 10 : 240;
     const mobile = window.innerWidth <= 600;
 
     if (mobile) {
@@ -4984,6 +5064,35 @@ function createChatWindow(userId, displayName) {
     return chat;
 }
 
+const chatMessageCache = new Map();
+
+function getChatCacheKey(userId) {
+    return String(userId || "");
+}
+
+function cacheChatMessages(userId, messages) {
+    const key = getChatCacheKey(userId);
+    if (!key) return;
+    const map = new Map();
+    (messages || []).forEach(m => {
+        if (m?.id != null) map.set(String(m.id), m);
+    });
+    chatMessageCache.set(key, Array.from(map.values()).sort((a,b) =>
+        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    ));
+}
+
+function cacheChatMessage(userId, message) {
+    const key = getChatCacheKey(userId);
+    if (!key || !message?.id) return;
+    const existing = chatMessageCache.get(key) || [];
+    const map = new Map(existing.map(m => [String(m.id), m]));
+    map.set(String(message.id), message);
+    chatMessageCache.set(key, Array.from(map.values()).sort((a,b) =>
+        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    ));
+}
+
 async function selectChatUser(userId, displayName) {
     if (!currentUser || userId === currentUser.id) return;
 
@@ -4999,42 +5108,85 @@ async function selectChatUser(userId, displayName) {
     chat.classList.remove("closed", "minimized");
     positionChatWindows();
 
-    // If the same conversation is already open, do not reset its messages.
-    if (chat.dataset.loaded !== "true") {
-        await loadChatMessages(chat);
-        chat.dataset.loaded = "true";
-    }
+    // Always reload from Supabase when a user is selected so a closed/reopened
+    // chat cannot show an old or empty DOM state.
+    await loadChatMessages(chat);
+    chat.dataset.loaded = "true";
 }
 
 async function loadChatMessages(chat = activeChatWindow) {
-    if (!chat) return;
+    if (!chat || !currentUser?.id) return;
     activateChatWindow(chat);
 
     const container = chat.querySelector(".chat-messages");
     const user = getChatWindowUser(chat);
-    if (!container || !user) return;
+    if (!container || !user?.id) return;
 
+    const otherId = String(user.id);
+    const cached = chatMessageCache.get(getChatCacheKey(otherId)) || [];
+
+    // Show the last known conversation immediately while Supabase is loading.
     container.innerHTML = "";
+    const visibleCached = cached.filter(m => {
+        const deletedFor = Array.isArray(m.deleted_for) ? m.deleted_for : [];
+        return !deletedFor.map(String).includes(String(currentUser.id));
+    });
+    if (visibleCached.length) {
+        visibleCached.forEach(m => appendChatMessage(
+            m,
+            String(m.user_id) === String(currentUser.id) ? "YOU" : (user.display_name || "MEMBER"),
+            chat
+        ));
+    } else {
+        container.innerHTML = '<div style="color:#555;text-align:center;margin-top:20px;">LOADING MESSAGES...</div>';
+    }
 
     const { data, error } = await _supabase
         .from("messages")
         .select("*")
-        .or(`and(user_id.eq.${currentUser.id},recipient_id.eq.${user.id}),and(user_id.eq.${user.id},recipient_id.eq.${currentUser.id})`)
-        .order("created_at", {ascending:true});
+        .or(`and(user_id.eq.${currentUser.id},recipient_id.eq.${otherId}),and(user_id.eq.${otherId},recipient_id.eq.${currentUser.id})`)
+        .order("created_at", {ascending:true})
+        .limit(500);
 
     if (error) {
-        container.innerHTML = `<div style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
+        console.error("loadChatMessages error:", error);
+        if (!visibleCached.length) {
+            container.innerHTML = `<div style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
+        }
         return;
     }
 
-    if (!data?.length) {
+    const dbMessages = (data || []).filter(m => {
+        const deletedFor = Array.isArray(m.deleted_for) ? m.deleted_for : [];
+        return !deletedFor.map(String).includes(String(currentUser.id));
+    });
+
+    // Merge DB + cached messages so a freshly sent message is not lost when the
+    // floating chat window is closed and recreated. DB remains the permanent source.
+    const merged = new Map();
+    [...cached, ...dbMessages].forEach(m => {
+        if (m?.id != null) merged.set(String(m.id), m);
+    });
+    const rows = Array.from(merged.values()).sort((a,b) =>
+        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    );
+    cacheChatMessages(otherId, rows);
+
+    container.innerHTML = "";
+    if (!rows.length) {
         container.innerHTML = '<div style="color:#555;text-align:center;margin-top:20px;">NO MESSAGES YET</div>';
         return;
     }
 
-    data
-        .filter(m => !m.deleted_for?.includes(currentUser.id))
-        .forEach(m => appendChatMessage(m, m.user_id === currentUser.id ? "YOU" : user.display_name, chat));
+    rows.forEach(m => appendChatMessage(
+        m,
+        String(m.user_id) === String(currentUser.id) ? "YOU" : (user.display_name || "MEMBER"),
+        chat
+    ));
+
+    requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+    });
 }
 
 function appendChatMessage(msg, senderDisplayName, chat = activeChatWindow) {
@@ -5127,7 +5279,10 @@ async function sendMessage(attachmentUrl=null, attachmentType=null, chat=activeC
     if (error) { alert("Failed to send: " + error.message); return; }
     if (createdMessage) {
         await _supabase.channel(`user-events:${user.id}`).send({type:"broadcast",event:"new_message",payload:{message:createdMessage,senderName:currentProfile?.display_name || currentUser.email.split("@")[0]}});
+        cacheChatMessage(user.id, createdMessage);
         if (!chat.querySelector(`#msg-${CSS.escape(String(createdMessage.id))}`)) appendChatMessage(createdMessage,"YOU",chat);
+        upsertMessageHistoryItem(createdMessage, user.display_name || "MEMBER");
+        loadMessageHistory();
     }
 }
 
@@ -5158,24 +5313,29 @@ async function setupChatRealtime(){
     if(chatChannel){_supabase.removeChannel(chatChannel);chatChannel=null;}
     if(userEventChannel){_supabase.removeChannel(userEventChannel);userEventChannel=null;}
 
-    const handleIncomingMessage = async (m) => {
+    const handleIncomingMessage = async (m, broadcastSenderName="") => {
         if(!m || m.recipient_id !== currentUser.id) return;
+        const friendProfile = (Array.isArray(friendsCache) ? friendsCache : []).find(p => String(p.id) === String(m.user_id));
         const {data:p}=await _supabase.from("profiles").select("display_name").eq("id",m.user_id).maybeSingle();
-        const name=p?.display_name||"MEMBER";
+        const name = p?.display_name || friendProfile?.display_name || broadcastSenderName || "MEMBER";
+        upsertMessageHistoryItem(m, name);
         const chat=getChatWindowByUserId(m.user_id);
 
-        if(chat && !chat.classList.contains("closed")){
+        if(chat && !chat.classList.contains("closed") && !chat.classList.contains("minimized") && activeChatWindow === chat){
             if(!chat.querySelector(`#msg-${CSS.escape(String(m.id))}`)) appendChatMessage(m,name,chat);
+            markConversationRead(m.user_id, new Date(m.created_at || Date.now()).getTime());
+            loadMessageHistory();
         }else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){
             realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});
             updateNotificationBadge();
+            loadMessageHistory();
             renderNotificationPanel();
             showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);
         }
     };
 
     userEventChannel=_supabase.channel(`user-events:${currentUser.id}`)
-        .on("broadcast",{event:"new_message"},async({payload})=>handleIncomingMessage(payload?.message))
+        .on("broadcast",{event:"new_message"},async({payload})=>handleIncomingMessage(payload?.message, payload?.senderName || ""))
         .on("broadcast",{event:"friend_request"},async({payload})=>{
             const r=payload?.request;
             if(!r||r.friend_id!==currentUser.id)return;
@@ -5649,6 +5809,406 @@ async function sendChatFile(input) {
 }
 
 /* =========================
+   MESSAGE HISTORY / INBOX
+========================= */
+let messageHistoryCache = [];
+let messageUnreadCounts = {};
+const MESSAGE_READ_STORAGE_KEY = "vault_message_read_at_v1";
+let messageReadAt = {};
+try { messageReadAt = JSON.parse(localStorage.getItem(MESSAGE_READ_STORAGE_KEY) || "{}"); } catch(e) { messageReadAt = {}; }
+
+function saveMessageReadAt() {
+    try { localStorage.setItem(MESSAGE_READ_STORAGE_KEY, JSON.stringify(messageReadAt)); } catch(e) {}
+}
+
+function getMessageReadAt(userId) {
+    return Number(messageReadAt[String(userId)] || 0);
+}
+
+function markConversationRead(userId, readTime=null) {
+    if (!userId || !currentUser) return;
+    const key = String(userId);
+    const fallback = Date.now();
+    messageReadAt[key] = Number(readTime || fallback);
+    messageUnreadCounts[key] = 0;
+    saveMessageReadAt();
+    const item = messageHistoryCache.find(x => String(x.userId) === key);
+    if (item) item.unreadCount = 0;
+    updateMessageHistoryBadge();
+    renderMessageHistoryMenu();
+    renderMessageHistory(document.getElementById("messageHistorySearch")?.value || "");
+}
+
+function formatMessageHistoryTime(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    return sameDay
+        ? d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
+        : d.toLocaleDateString([], {month:"short", day:"numeric"});
+}
+
+function messageHistoryInitial(name) {
+    const clean = String(name || "MEMBER").trim();
+    return clean ? clean.charAt(0).toUpperCase() : "M";
+}
+
+async function loadMessageHistory() {
+    if (!currentUser) return;
+
+    const list = document.getElementById("messageHistoryList");
+    const hadCache = messageHistoryCache.length > 0;
+
+    // Do not destroy an already visible history while refreshing.
+    if (list && !hadCache) {
+        list.innerHTML = '<div class="message-history-empty">LOADING MESSAGES...</div>';
+    }
+
+    const baseSelect = "id,user_id,recipient_id,text,attachment_url,created_at,deleted_for";
+
+    // Read sent and received messages separately. This is more reliable than
+    // replacing the whole cache with a single OR query when the menu is reopened.
+    const [sentResult, receivedResult] = await Promise.all([
+        _supabase
+            .from("messages")
+            .select(baseSelect)
+            .eq("user_id", currentUser.id)
+            .order("created_at", {ascending:false})
+            .limit(500),
+        _supabase
+            .from("messages")
+            .select(baseSelect)
+            .eq("recipient_id", currentUser.id)
+            .order("created_at", {ascending:false})
+            .limit(500)
+    ]);
+
+    if (sentResult.error || receivedResult.error) {
+        console.warn("Message history refresh:", sentResult.error?.message || receivedResult.error?.message);
+        // Keep the previous history visible instead of replacing it with an empty list.
+        if (messageHistoryCache.length) {
+            renderMessageHistory(document.getElementById("messageHistorySearch")?.value || "");
+            renderMessageHistoryMenu();
+            updateMessageHistoryBadge();
+            return;
+        }
+        if (list) {
+            const err = sentResult.error?.message || receivedResult.error?.message || "Unable to load messages.";
+            list.innerHTML = `<div class="message-history-empty" style="color:#ff4a4a;">MESSAGE HISTORY ERROR: ${escapeHtml(err)}</div>`;
+        }
+        return;
+    }
+
+    const rows = [...(sentResult.data || []), ...(receivedResult.data || [])]
+        .filter(m => !m.deleted_for?.includes(currentUser.id))
+        // Ignore malformed rows before they can become a "null" UUID in
+        // the profiles .in(...) query below.
+        .filter(m => m && m.user_id && m.recipient_id);
+
+    // The MESSAGE badge is ONLY for unread incoming messages.
+    // On the first load for a conversation, establish a read baseline so old
+    // messages do not suddenly appear as unread.
+    const incomingByUser = new Map();
+    rows.filter(m => String(m.recipient_id) === String(currentUser.id))
+        .forEach(m => {
+            const uid = String(m.user_id);
+            if (!incomingByUser.has(uid)) incomingByUser.set(uid, []);
+            incomingByUser.get(uid).push(m);
+        });
+
+    incomingByUser.forEach((msgs, uid) => {
+        if (!messageReadAt[uid]) {
+            const latestIncoming = Math.max(...msgs.map(m => new Date(m.created_at || 0).getTime()), 0);
+            messageReadAt[uid] = latestIncoming || Date.now();
+        }
+    });
+    saveMessageReadAt();
+
+    // Newest message for each conversation partner.
+    const latestByUser = new Map();
+    rows.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    rows.forEach(m => {
+        const otherId = String(m.user_id) === String(currentUser.id)
+            ? String(m.recipient_id)
+            : String(m.user_id);
+        if (!otherId || otherId === String(currentUser.id)) return;
+        if (!latestByUser.has(otherId)) latestByUser.set(otherId, m);
+    });
+
+    const isValidUuid = value =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+
+    const otherIds = [...latestByUser.keys()].filter(id => isValidUuid(id) && id !== String(currentUser.id));
+    let profiles = [];
+    if (otherIds.length) {
+        const result = await _supabase
+            .from("profiles")
+            .select("id,display_name,avatar_url")
+            .in("id", otherIds);
+        if (!result.error) profiles = result.data || [];
+    }
+
+    const profileMap = new Map(profiles.map(p => [String(p.id), p]));
+    const friendProfileMap = new Map((Array.isArray(friendsCache) ? friendsCache : []).map(p => [String(p.id), p]));
+    messageHistoryCache = otherIds.map(id => {
+        const m = latestByUser.get(id);
+        const profile = profileMap.get(id) || friendProfileMap.get(id) || {};
+        const mine = String(m.user_id) === String(currentUser.id);
+        return {
+            userId:id,
+            displayName:profile.display_name || (String(id) === String(currentUser.id) ? (currentProfile?.display_name || currentUser.email.split("@")[0]) : "MEMBER"),
+            avatarUrl:profile.avatar_url || "",
+            message:m,
+            mine,
+            unreadCount: rows.filter(x => String(x.recipient_id) === String(currentUser.id) && String(x.user_id) === id && new Date(x.created_at || 0).getTime() > getMessageReadAt(id)).length,
+            sortTime:new Date(m.created_at || 0).getTime()
+        };
+    }).sort((a,b) => b.sortTime - a.sortTime);
+
+    renderMessageHistory(document.getElementById("messageHistorySearch")?.value || "");
+    renderMessageHistoryMenu();
+    updateMessageHistoryBadge();
+}
+
+function upsertMessageHistoryItem(message, displayName="MEMBER", avatarUrl="") {
+    if (!message || !currentUser) return;
+    const otherId = String(message.user_id) === String(currentUser.id)
+        ? String(message.recipient_id)
+        : String(message.user_id);
+    if (!otherId || otherId === String(currentUser.id)) return;
+    if (message.deleted_for?.includes(currentUser.id)) return;
+
+    const existing = messageHistoryCache.find(item => String(item.userId) === otherId);
+    const friendProfile = (Array.isArray(friendsCache) ? friendsCache : []).find(p => String(p.id) === otherId);
+    const incomingTime = new Date(message.created_at || 0).getTime();
+    const existingTime = existing ? new Date(existing.message?.created_at || 0).getTime() : -1;
+
+    if (existing && incomingTime < existingTime) return;
+
+    const mine = String(message.user_id) === String(currentUser.id);
+    const isActivelyOpen = !!(getChatWindowByUserId(otherId) && !getChatWindowByUserId(otherId).classList.contains("closed") && !getChatWindowByUserId(otherId).classList.contains("minimized") && activeChatWindow === getChatWindowByUserId(otherId));
+    if (!mine && !isActivelyOpen && incomingTime > getMessageReadAt(otherId)) {
+        messageUnreadCounts[otherId] = Number(messageUnreadCounts[otherId] || 0) + 1;
+    }
+
+    const item = {
+        userId:otherId,
+        displayName:displayName && displayName !== "MEMBER" ? displayName : (existing?.displayName && existing.displayName !== "MEMBER" ? existing.displayName : (friendProfile?.display_name || "MEMBER")),
+        avatarUrl:avatarUrl || existing?.avatarUrl || friendProfile?.avatar_url || "",
+        message,
+        mine,
+        unreadCount: mine ? 0 : Number(messageUnreadCounts[otherId] || (incomingTime > getMessageReadAt(otherId) ? 1 : 0)),
+        sortTime:incomingTime
+    };
+
+    messageHistoryCache = [
+        ...messageHistoryCache.filter(x => String(x.userId) !== otherId),
+        item
+    ].sort((a,b) => b.sortTime - a.sortTime);
+
+    renderMessageHistory(document.getElementById("messageHistorySearch")?.value || "");
+    renderMessageHistoryMenu();
+    updateMessageHistoryBadge();
+}
+
+function renderMessageHistory(searchText="") {
+    const list = document.getElementById("messageHistoryList");
+    if (!list) return;
+    const q = String(searchText || "").trim().toLowerCase();
+    const filtered = messageHistoryCache.filter(item => {
+        if (!q) return true;
+        const text = item.message?.text || (item.message?.attachment_url ? "Sent an attachment" : "");
+        return String(item.displayName).toLowerCase().includes(q) || String(text).toLowerCase().includes(q);
+    });
+
+    if (!filtered.length) {
+        list.innerHTML = '<div class="message-history-empty">NO CONVERSATIONS YET</div>';
+        return;
+    }
+
+    list.innerHTML = filtered.map(item => {
+        const m = item.message || {};
+        const preview = m.text || (m.attachment_url ? "📎 Sent an attachment" : "");
+        const prefix = item.mine ? "You: " : "";
+        const avatar = item.avatarUrl
+            ? `<img src="${escapeHtml(item.avatarUrl)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`
+            : escapeHtml(messageHistoryInitial(item.displayName));
+        return `
+            <div class="message-history-item" onclick="openMessageConversation('${escapeHtml(item.userId)}','${escapeHtml(item.displayName)}')">
+                <div class="message-history-avatar">${avatar}</div>
+                <div class="message-history-body">
+                    <div class="message-history-row">
+                        <div class="message-history-name">${escapeHtml(item.displayName)}</div>
+                        <div class="message-history-time">${escapeHtml(formatMessageHistoryTime(m.created_at))}</div>
+                    </div>
+                    <div class="message-history-preview ${item.mine ? 'mine' : ''} ${item.unreadCount ? 'message-history-unread' : ''}">${escapeHtml(prefix + preview)}</div>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+function renderMessageHistoryMenu() {
+    const list = document.getElementById("messageHistoryMenuList");
+    if (!list) return;
+
+    const items = messageHistoryCache.slice(0, 6);
+    if (!items.length) {
+        list.innerHTML = '<div class="message-history-empty">NO CONVERSATIONS YET</div>';
+        return;
+    }
+
+    list.innerHTML = items.map(item => {
+        const m = item.message || {};
+        const preview = m.text || (m.attachment_url ? "📎 Sent an attachment" : "");
+        const prefix = item.mine ? "You: " : "";
+        const avatar = item.avatarUrl
+            ? `<img src="${escapeHtml(item.avatarUrl)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
+            : `<span class="message-menu-avatar">${escapeHtml(messageHistoryInitial(item.displayName))}</span>`;
+        return `
+            <div class="message-menu-item" onclick="openMessageConversationFromMenu(event,'${escapeHtml(item.userId)}','${escapeHtml(item.displayName)}')">
+                ${avatar}
+                <div class="message-menu-body">
+                    <div class="message-menu-row">
+                        <span class="message-menu-name">${escapeHtml(item.displayName)}</span>
+                        <span class="message-menu-time">${escapeHtml(formatMessageHistoryTime(m.created_at))}</span>
+                    </div>
+                    <div class="message-menu-preview ${item.mine ? 'mine' : ''} ${item.unreadCount ? 'message-history-unread' : ''}">${escapeHtml(prefix + preview)}</div>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+function toggleMessageHistoryMenu(event) {
+    event?.stopPropagation();
+    const menu = document.getElementById("messageHistoryMenu");
+    if (!menu) return;
+    const willOpen = !menu.classList.contains("open");
+    menu.classList.toggle("open", willOpen);
+    if (willOpen) {
+        renderMessageHistoryMenu();
+        loadMessageHistory();
+    }
+}
+
+function closeMessageHistoryMenu() {
+    document.getElementById("messageHistoryMenu")?.classList.remove("open");
+}
+
+function openAllMessageHistory(event) {
+    event?.stopPropagation();
+    closeMessageHistoryMenu();
+    switchPage("messages");
+    loadMessageHistory();
+}
+
+function closeAllMessageHistory() {
+    switchPage("home");
+}
+
+async function openMessageConversationFromMenu(event, userId, displayName) {
+    event?.stopPropagation();
+    closeMessageHistoryMenu();
+    // Notification/history dropdown: open the NORMAL floating chat window.
+    // VIEW ALL MESSAGES is the only path that opens the dedicated history screen.
+    await selectChatUser(userId, displayName || "MEMBER");
+}
+
+let messageHistoryActiveUserId = null;
+let messageHistoryActiveDisplayName = "MEMBER";
+
+async function openMessageConversation(userId, displayName) {
+    if (!currentUser || !userId || String(userId) === String(currentUser.id)) return;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(userId))) return;
+    closeMessageHistoryMenu();
+    messageHistoryActiveUserId = String(userId);
+    messageHistoryActiveDisplayName = displayName || "MEMBER";
+    document.getElementById("messageHistoryListView")?.style.setProperty("display","none");
+    const view = document.getElementById("messageHistoryConversationView");
+    if (view) view.style.display = "flex";
+    const name = document.getElementById("messageHistoryConversationName");
+    if (name) name.textContent = messageHistoryActiveDisplayName;
+    await loadMessageHistoryConversation();
+    markConversationRead(messageHistoryActiveUserId, Date.now());
+    document.getElementById("messageHistoryConversationInput")?.focus();
+}
+
+async function loadMessageHistoryConversation() {
+    const container = document.getElementById("messageHistoryConversationMessages");
+    if (!container || !currentUser || !messageHistoryActiveUserId) return;
+    container.innerHTML = '<div class="message-history-empty">LOADING CONVERSATION...</div>';
+    const otherId = String(messageHistoryActiveUserId || "").trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(otherId)) {
+        container.innerHTML = '<div class="message-history-empty" style="color:#ff4a4a;">CHAT ERROR: Invalid conversation user.</div>';
+        return;
+    }
+    const { data, error } = await _supabase.from("messages").select("*")
+        .or(`and(user_id.eq.${currentUser.id},recipient_id.eq.${otherId}),and(user_id.eq.${otherId},recipient_id.eq.${currentUser.id})`)
+        .order("created_at", {ascending:true}).limit(500);
+    if (error) {
+        container.innerHTML = `<div class="message-history-empty" style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
+        return;
+    }
+    const rows = (data || []).filter(m => !m.deleted_for?.includes(currentUser.id));
+    if (!rows.length) {
+        container.innerHTML = '<div class="message-history-empty">NO MESSAGES YET</div>';
+        return;
+    }
+    container.innerHTML = "";
+    rows.forEach(m => {
+        const mine = String(m.user_id) === String(currentUser.id);
+        const bubble = document.createElement("div");
+        bubble.className = `message-history-conversation-message ${mine ? "mine" : ""}`;
+        let body = m.text ? `<div class="message-history-conversation-text">${escapeHtml(m.text)}</div>` : "";
+        if (m.attachment_url) body += m.attachment_type === "image"
+            ? `<img src="${escapeHtml(m.attachment_url)}" class="message-history-conversation-image">`
+            : `<a href="${escapeHtml(m.attachment_url)}" target="_blank" class="created-by-link">📁 View Attachment</a>`;
+        bubble.innerHTML = `<div class="message-history-conversation-sender">${mine ? "YOU" : escapeHtml(messageHistoryActiveDisplayName)}</div>${body}<div class="message-history-conversation-time">${escapeHtml(new Date(m.created_at || Date.now()).toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}))}</div>`;
+        container.appendChild(bubble);
+    });
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendMessageHistoryMessage() {
+    if (!currentUser || !messageHistoryActiveUserId) return;
+    const input = document.getElementById("messageHistoryConversationInput");
+    const text = input?.value.trim();
+    if (!input || !text) return;
+    const recipientId = String(messageHistoryActiveUserId);
+    input.value = "";
+    const { data:createdMessage, error } = await _supabase.from("messages").insert([{
+        user_id: currentUser.id, recipient_id: recipientId, text, attachment_url:null, attachment_type:null, reply_to_id:null
+    }]).select("*").single();
+    if (error) { input.value = text; alert("Failed to send: " + error.message); return; }
+    if (createdMessage) {
+        cacheChatMessage(recipientId, createdMessage);
+        await _supabase.channel(`user-events:${recipientId}`).send({type:"broadcast",event:"new_message",payload:{message:createdMessage,senderName:currentProfile?.display_name || currentUser.email.split("@")[0]}});
+    }
+    await loadMessageHistoryConversation();
+    await loadMessageHistory();
+    input.focus();
+}
+
+function backToMessageHistoryList() {
+    messageHistoryActiveUserId = null;
+    const view = document.getElementById("messageHistoryConversationView");
+    if (view) view.style.display = "none";
+    const list = document.getElementById("messageHistoryListView");
+    if (list) list.style.display = "block";
+    renderMessageHistory(document.getElementById("messageHistorySearch")?.value || "");
+}
+
+function updateMessageHistoryBadge() {
+    const badge = document.getElementById("messageHistoryBadge");
+    if (!badge) return;
+    const count = messageHistoryCache.reduce((sum, item) => sum + Number(item.unreadCount || 0), 0);
+    const uniqueSafeCount = Math.max(0, count);
+    badge.innerText = uniqueSafeCount > 99 ? "99+" : String(uniqueSafeCount);
+    badge.style.display = uniqueSafeCount ? "inline-block" : "none";
+}
+
+/* =========================
    CHAT WINDOW
 ========================= */
 
@@ -5677,6 +6237,9 @@ function closeChat(chat=activeChatWindow) {
     }
     chat.remove();
     positionChatWindows();
+    // Closing a chat must not erase its conversation preview. Refresh the
+    // persistent inbox cache from Supabase after the window is removed.
+    loadMessageHistory();
 
     const remaining=Array.from(openChatWindows.values());
     if (remaining.length) activateChatWindow(remaining[remaining.length-1]);
@@ -5868,12 +6431,11 @@ function setupPresenceRealtime() {
 
 
 function toggleOnlinePanel() {
-
-    document.getElementById(
-        "onlinePanel"
-    ).classList.toggle(
-        "panel-minimized"
-    );
+    const panel = document.getElementById("onlinePanel");
+    if (!panel) return;
+    const minimized = panel.classList.toggle("panel-minimized");
+    const btn = panel.querySelector(".panel-min-btn");
+    if (btn) btn.innerText = minimized ? "+" : "−";
 }
 
 
@@ -6535,10 +7097,13 @@ function escapeHtml(str) {
 }
 
 
-// Close the notification popup when clicking outside it.
+// Close navigation popups when clicking outside them.
 document.addEventListener("click", e => {
-    const wrap = document.querySelector(".notification-wrap");
-    if (wrap && !wrap.contains(e.target)) closeNotificationPanel();
+    const notificationWrap = document.querySelector(".notification-wrap");
+    if (notificationWrap && !notificationWrap.contains(e.target)) closeNotificationPanel();
+
+    const messageWrap = document.querySelector(".message-wrap");
+    if (messageWrap && !messageWrap.contains(e.target)) closeMessageHistoryMenu();
 });
 
 /* =========================
@@ -6611,6 +7176,433 @@ document.addEventListener("DOMContentLoaded", () => {
 .folder-card .folder-preview{min-height:58px !important;}
 .folder-card .folder-title{font-size:10px !important;}
 .folder-card .posted-badge,.folder-card .folder-posted,.folder-card [class*="posted"],.folder-card [class*="POSTED"]{display:none !important;}
+
+/* =========================
+   FIXED APP LAYOUT / MESSAGE HISTORY
+========================= */
+#gameScreen {
+    position:relative;
+}
+
+/* Contacts stay anchored to the application layout instead of following
+   the browser viewport as a floating widget. */
+#onlinePanel {
+    position:absolute !important;
+    top:95px !important;
+    right:20px !important;
+    bottom:auto !important;
+    width:210px !important;
+    max-height:calc(100vh - 120px);
+    box-sizing:border-box;
+}
+
+.message-nav-btn {
+    position:relative;
+    min-width:46px;
+}
+
+.message-nav-btn .notification-badge {
+    top:-7px;
+    right:-7px;
+}
+
+.message-history-page {
+    width:min(760px, calc(100% - 250px));
+    margin-left:20px;
+    margin-right:230px;
+}
+
+.message-history-card {
+    background:#161a21;
+    border:1px solid #222;
+    border-radius:10px;
+    box-shadow:0 8px 25px rgba(0,0,0,.18);
+    overflow:hidden;
+}
+
+.message-history-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:16px;
+    border-bottom:1px solid #222;
+}
+
+.message-history-title {
+    color:#00f0ff;
+    font-size:16px;
+    font-weight:bold;
+}
+
+.message-history-subtitle {
+    color:#777;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.message-history-search-wrap { padding:10px 12px 4px; }
+.message-history-search {
+    width:100%;
+    box-sizing:border-box;
+    background:#0d0f12;
+    border:1px solid #333;
+    color:#fff;
+    padding:10px;
+    border-radius:6px;
+    outline:none;
+    font-size:10px;
+}
+
+.message-history-list {
+    padding:8px 12px 14px;
+    max-height:calc(100vh - 270px);
+    overflow-y:auto;
+}
+
+.message-history-item {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 8px;
+    border-bottom:1px solid #222;
+    cursor:pointer;
+    transition:background .12s ease;
+}
+.message-history-item:hover { background:#00f0ff0c; }
+.message-history-item:last-child { border-bottom:0; }
+
+.message-history-avatar {
+    width:38px;
+    height:38px;
+    flex:0 0 38px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#00f0ff18;
+    border:1px solid #00f0ff55;
+    color:#00f0ff;
+    font-size:12px;
+    font-weight:bold;
+}
+
+.message-history-body { min-width:0; flex:1; }
+.message-history-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+}
+.message-history-name {
+    color:#fff;
+    font-size:11px;
+    font-weight:bold;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.message-history-time {
+    color:#666;
+    font-size:8px;
+    white-space:nowrap;
+}
+.message-history-preview {
+    color:#999;
+    font-size:9px;
+    margin-top:4px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.message-history-preview.mine { color:#777; }
+.message-history-unread {
+    color:#00f0ff;
+    font-weight:bold;
+}
+.message-history-empty {
+    color:#555;
+    text-align:center;
+    padding:35px 10px;
+    font-size:10px;
+}
+
+@media(max-width:1050px) {
+    #onlinePanel {
+        right:15px !important;
+        width:190px !important;
+    }
+    .message-history-page {
+        width:calc(100% - 225px);
+        margin-left:10px;
+        margin-right:205px;
+    }
+}
+
+@media(max-width:800px) {
+    #onlinePanel {
+        position:fixed !important;
+        top:auto !important;
+        right:10px !important;
+        bottom:20px !important;
+        width:min(210px, calc(100vw - 20px)) !important;
+        max-height:calc(100vh - 90px);
+        margin:0;
+    }
+    .message-history-page {
+        width:100%;
+        margin-left:0;
+        margin-right:0;
+    }
+    .message-history-list { max-height:none; }
+}
+
+/* =========================
+   MESSAGE NAV DROPDOWN
+========================= */
+.message-wrap {
+    position:relative;
+}
+
+#messageHistoryMenu {
+    position:absolute;
+    top:calc(100% + 10px);
+    left:0;
+    width:min(170px, calc(100vw - 30px));
+    max-height:390px;
+    overflow:hidden;
+    display:none;
+    background:#161a21;
+    border:1px solid #00f0ff55;
+    border-radius:8px;
+    box-shadow:0 12px 35px rgba(0,0,0,.5);
+    z-index:950;
+}
+
+#messageHistoryMenu.open { display:block; }
+
+.message-menu-title {
+    color:#00f0ff;
+    font-size:10px;
+    font-weight:bold;
+    letter-spacing:1px;
+    padding:11px 12px 9px;
+    border-bottom:1px solid #222;
+}
+
+.message-menu-list {
+    max-height:315px;
+    overflow-y:auto;
+}
+
+.message-menu-item {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 10px;
+    border-bottom:1px solid #222;
+    cursor:pointer;
+}
+
+.message-menu-item:hover { background:#00f0ff0c; }
+
+.message-menu-avatar {
+    width:32px;
+    height:32px;
+    flex:0 0 32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:#00f0ff18;
+    border:1px solid #00f0ff55;
+    color:#00f0ff;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.message-menu-body { min-width:0; flex:1; }
+.message-menu-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:7px;
+}
+.message-menu-name {
+    color:#fff;
+    font-size:10px;
+    font-weight:bold;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.message-menu-time {
+    color:#666;
+    font-size:7px;
+    white-space:nowrap;
+}
+.message-menu-preview {
+    color:#999;
+    font-size:8px;
+    margin-top:3px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.message-menu-preview.mine { color:#777; }
+
+.message-view-all {
+    width:100%;
+    border:0;
+    border-top:1px solid #222;
+    background:#101318;
+    color:#00f0ff;
+    padding:10px;
+    cursor:pointer;
+    font-size:9px;
+    font-weight:bold;
+    letter-spacing:.5px;
+}
+.message-view-all:hover { background:#00f0ff12; }
+
+/* Keep Contacts locked to the same bottom anchor when minimizing.
+   Never move it upward just because the window becomes smaller. */
+#onlinePanel {
+    position:fixed !important;
+    top:auto !important;
+    right:20px !important;
+    bottom:20px !important;
+    width:210px !important;
+    max-height:min(410px, calc(100vh - 40px)) !important;
+}
+
+#onlinePanel.panel-minimized {
+    width:210px !important;
+    height:auto !important;
+    max-height:42px !important;
+    bottom:20px !important;
+    top:auto !important;
+}
+
+#onlinePanel.panel-minimized .online-header {
+    margin-bottom:0;
+}
+
+#onlinePanel.panel-minimized .panel-min-btn {
+    transform:none;
+}
+
+
+
+/* =========================
+   FINAL UI BEHAVIOR FIXES
+========================= */
+
+/* Full message history behaves like the existing Profile modal:
+   centered in the viewport, not pushed down by page content. */
+#page-messages.message-history-page {
+    position:fixed !important;
+    inset:0 !important;
+    width:100vw !important;
+    height:100vh !important;
+    margin:0 !important;
+    padding:20px !important;
+    box-sizing:border-box !important;
+    display:none !important;
+    align-items:center !important;
+    justify-content:center !important;
+    background:rgba(0,0,0,.82) !important;
+    backdrop-filter:blur(5px);
+    z-index:2000 !important;
+}
+
+#page-messages.message-history-page.active {
+    display:flex !important;
+}
+
+#page-messages .message-history-card {
+    width:min(620px, 92vw) !important;
+    max-height:86vh !important;
+    margin:0 !important;
+    overflow:hidden !important;
+    border:1px solid #00f0ff44 !important;
+    box-shadow:0 12px 40px rgba(0,0,0,.55) !important;
+}
+
+#page-messages .message-history-list {
+    max-height:calc(86vh - 145px) !important;
+}
+
+.message-history-head-actions {
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.message-history-close-btn {
+    min-width:34px;
+    padding-left:8px !important;
+    padding-right:8px !important;
+}
+
+/* The entire Online Friends title bar is the control.
+   There is deliberately NO +/-/minus button. */
+#onlinePanel .online-header {
+    cursor:pointer !important;
+    user-select:none;
+    margin-bottom:8px;
+}
+
+#onlinePanel .online-header:hover {
+    background:#00f0ff08;
+}
+
+#onlinePanel .panel-min-btn {
+    display:none !important;
+}
+
+/* Collapse inward from the bottom edge; never reposition upward. */
+#onlinePanel.panel-minimized {
+    position:fixed !important;
+    top:auto !important;
+    bottom:20px !important;
+    height:auto !important;
+    max-height:42px !important;
+}
+
+#onlinePanel.panel-minimized .online-header {
+    margin-bottom:0 !important;
+}
+
+/* MESSAGE HISTORY: in-page conversation view */
+#messageHistoryConversationView {
+    flex-direction:column; height:calc(86vh - 75px); min-height:360px;
+}
+.message-history-conversation-head { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #222; }
+.message-history-conversation-user { display:flex; flex-direction:column; color:#00f0ff; font-weight:bold; font-size:12px; }
+.message-history-conversation-user small { color:#777; font-size:8px; margin-top:2px; }
+.message-history-conversation-messages { flex:1; overflow-y:auto; padding:14px; background:#0d0f12; }
+.message-history-conversation-message { width:fit-content; max-width:78%; margin:0 0 10px; padding:8px 10px; background:#1c222b; border:1px solid #29313c; border-radius:8px 8px 8px 2px; color:#ddd; font-size:10px; }
+.message-history-conversation-message.mine { margin-left:auto; background:#102b31; border-radius:8px 8px 2px 8px; }
+.message-history-conversation-sender { color:#00f0ff; font-size:8px; font-weight:bold; margin-bottom:4px; }
+.message-history-conversation-text { white-space:pre-wrap; word-break:break-word; }
+.message-history-conversation-time { color:#666; font-size:7px; margin-top:5px; text-align:right; }
+.message-history-conversation-image { display:block; max-width:220px; max-height:220px; border-radius:6px; margin-top:5px; }
+.message-history-composer { display:flex; gap:7px; padding:10px; border-top:1px solid #222; background:#161a21; }
+.message-history-composer input { flex:1; min-width:0; background:#0d0f12; border:1px solid #333; color:#fff; padding:10px; border-radius:6px; outline:none; font-size:10px; }
+
+@media(max-width:800px) {
+    #page-messages.message-history-page {
+        padding:12px !important;
+    }
+    #page-messages .message-history-card {
+        width:min(620px, 96vw) !important;
+        max-height:90vh !important;
+    }
+    #page-messages .message-history-list {
+        max-height:calc(90vh - 145px) !important;
+    }
+}
 </style>
 <script>
 (function(){
