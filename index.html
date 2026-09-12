@@ -156,6 +156,8 @@ body {
 }
 
 header {
+    position:relative;
+    z-index:100000;
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -196,6 +198,19 @@ header {
     display:flex;
     gap:10px;
     flex-wrap:wrap;
+    position:relative;
+    z-index:10000;
+}
+
+.message-wrap,
+.notification-wrap {
+    position:relative;
+    z-index:10001;
+}
+
+#messageHistoryMenu,
+#notificationPanel {
+    z-index:10002 !important;
 }
 
 
@@ -231,17 +246,33 @@ header {
 #notificationPanel {
     position:absolute;
     top:calc(100% + 10px);
+    left:auto;
     right:0;
-    width:min(360px, calc(100vw - 40px));
+    /* Align the notification box from PROFILE through MESSAGE to BELL.
+       With the 46px nav buttons and 10px gaps, this spans exactly three icons. */
+    width:158px;
+    max-width:158px;
     max-height:430px;
     overflow:auto;
     display:none;
+    box-sizing:border-box;
     background:#161a21;
     border:1px solid #00f0ff55;
     border-radius:8px;
     padding:10px;
     box-shadow:0 12px 35px rgba(0,0,0,.45);
     z-index:900;
+}
+
+/* Keep the compact notification panel on narrow screens without
+   allowing it to cover the main content. */
+@media (max-width:700px) {
+    #notificationPanel {
+        width:min(158px, calc(100vw - 20px));
+        max-width:min(158px, calc(100vw - 20px));
+        left:auto;
+        right:0;
+    }
 }
 
 #notificationPanel.open { display:block; }
@@ -284,15 +315,30 @@ header {
     background:#161a21;
     border:1px solid #333;
     color:#888;
-    padding:8px 16px;
+    padding:8px 10px;
     cursor:pointer;
     border-radius:4px;
     font-size:11px;
     font-weight:bold;
+    min-width:38px;
+    white-space:nowrap;
+}
+
+.nav-link .nav-label {
+    display:none;
+    margin-left:5px;
+}
+
+.nav-link:hover .nav-label,
+.nav-link:focus .nav-label,
+.nav-link:focus-visible .nav-label,
+.nav-link.active .nav-label {
+    display:inline;
 }
 
 .nav-link.active,
-.nav-link:hover {
+.nav-link:hover,
+.nav-link:focus {
     border-color:#00f0ff;
     color:#00f0ff;
 }
@@ -1967,6 +2013,17 @@ input:checked + .slider:before {
   .gallery .folder-card{margin-left:-17.5% !important;margin-right:-17.5% !important;}
 }
 </style>
+<style id="dlare-cyberpunk-city-background-only-v4">
+/* CYBERPUNK CITY BACKGROUND ONLY — login + all dashboard pages */
+#portalPage,#gameScreen{background-color:#020207 !important;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22sky%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23020207%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23100016%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2303030a%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22road%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23090510%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23000106%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22glow%22%3E%3CfeGaussianBlur%20stdDeviation%3D%225%22%20result%3D%22b%22%2F%3E%3CfeMerge%3E%3CfeMergeNode%20in%3D%22b%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%3C%2Ffilter%3E%3Cpattern%20id%3D%22win%22%20width%3D%2236%22%20height%3D%2242%22%20patternUnits%3D%22userSpaceOnUse%22%3E%3Crect%20width%3D%227%22%20height%3D%2216%22%20x%3D%227%22%20y%3D%228%22%20fill%3D%22%23ff168f%22%20opacity%3D%22.65%22%2F%3E%3Crect%20width%3D%225%22%20height%3D%2211%22%20x%3D%2222%22%20y%3D%224%22%20fill%3D%22%2300eaff%22%20opacity%3D%22.5%22%2F%3E%3C%2Fpattern%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%3Cg%20opacity%3D%22.9%22%3E%3Cpath%20d%3D%22M0%20570V210h120v360h70V120h150v450h70V250h120v320h80V80h180v490h80V190h120v380h70V110h180v460h100V240h110v330h80V160h150v410h120v330H0z%22%20fill%3D%22%2305050b%22%20stroke%3D%22%233d0a3a%22%2F%3E%3Cpath%20d%3D%22M0%20210h120v360H0zm190-90h150v450H190zm280%20130h120v320H470zm200-170h180v490H670zm260%20110h120v380H930zm190-80h180v460h-180zm280%20130h110v330h-110zm190-80h150v410h-150z%22%20fill%3D%22url(%23win)%22%20opacity%3D%22.42%22%2F%3E%3C%2Fg%3E%3Cg%20stroke%3D%22%23ff0b91%22%20fill%3D%22none%22%20filter%3D%22url(%23glow)%22%20opacity%3D%22.8%22%3E%3Cpath%20d%3D%22M0%20650L420%20620%22%2F%3E%3Cpath%20d%3D%22M1600%20640L1170%20610%22%2F%3E%3Cpath%20d%3D%22M180%20530L510%20500%22%2F%3E%3Cpath%20d%3D%22M1420%20500L1090%20480%22%2F%3E%3C%2Fg%3E%3Cpath%20d%3D%22M0%20900L650%20560h300l650%20340z%22%20fill%3D%22url(%23road)%22%2F%3E%3Cg%20stroke%3D%22%23ff148f%22%20filter%3D%22url(%23glow)%22%20opacity%3D%22.9%22%3E%3Cpath%20d%3D%22M120%20900L730%20575%22%2F%3E%3Cpath%20d%3D%22M1480%20900L870%20575%22%2F%3E%3Cpath%20d%3D%22M440%20900L760%20580%22%2F%3E%3Cpath%20d%3D%22M1160%20900L840%20580%22%2F%3E%3C%2Fg%3E%3Cg%20stroke%3D%22%2319eaff%22%20opacity%3D%22.55%22%3E%3Cpath%20d%3D%22M0%20790h1600%22%2F%3E%3Cpath%20d%3D%22M0%20700h1600%22%2F%3E%3Cpath%20d%3D%22M0%20640h1600%22%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%22translate(1060%20610)%22%20filter%3D%22url(%23glow)%22%3E%3Cpath%20d%3D%22M0%2095l55-55%20145-18%2095%2043%2048%2070-35%2048H-10z%22%20fill%3D%22%23090912%22%20stroke%3D%22%23ff145f%22%20stroke-width%3D%225%22%2F%3E%3Cpath%20d%3D%22M65%2043l45-38%2083-8%2045%2025-8%2027H70z%22%20fill%3D%22%23111a2b%22%20stroke%3D%22%2320eaff%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%2265%22%20cy%3D%22145%22%20r%3D%2225%22%20fill%3D%22%23020207%22%20stroke%3D%22%23ff145f%22%20stroke-width%3D%227%22%2F%3E%3Ccircle%20cx%3D%22265%22%20cy%3D%22145%22%20r%3D%2225%22%20fill%3D%22%23020207%22%20stroke%3D%22%23ff145f%22%20stroke-width%3D%227%22%2F%3E%3Crect%20x%3D%22245%22%20y%3D%2284%22%20width%3D%2248%22%20height%3D%2214%22%20rx%3D%225%22%20fill%3D%22%23ff174f%22%2F%3E%3Cpath%20d%3D%22M20%20105h80M300%20105h35%22%20stroke%3D%22%23ff174f%22%20stroke-width%3D%228%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22%23ff199b%22%20filter%3D%22url(%23glow)%22%3E%3Ccircle%20cx%3D%22180%22%20cy%3D%22610%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%22350%22%20cy%3D%22570%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%221320%22%20cy%3D%22580%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%221450%22%20cy%3D%22620%22%20r%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") !important;background-size:cover;background-position:center;background-attachment:fixed;}
+#portalPage::before,#gameScreen::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.28)),radial-gradient(circle at 50% 48%,transparent 0,rgba(255,0,140,.06) 45%,rgba(0,0,0,.5) 100%);}
+#portalPage::after,#gameScreen::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,transparent 0 4px,rgba(255,0,150,.025) 5px),linear-gradient(90deg,transparent 0 20%,rgba(255,0,150,.05) 20.2% 20.35%,transparent 20.5% 80%,rgba(0,234,255,.04) 80.2% 80.35%,transparent 80.5%);box-shadow:inset 0 0 180px #000;}
+#portalPage>.login-box,#gameScreen>header,#gameScreen>.page-content,#gameScreen>.message-history-menu,#gameScreen>.notification-panel,#gameScreen>.modal,#gameScreen>.chat-window{position:relative;z-index:2;}
+#gameScreen{isolation:isolate;}
+#gameScreen .page-content{background:rgba(2,2,7,.58) !important;}
+#gameScreen header{background:rgba(2,2,7,.48);backdrop-filter:blur(3px);}
+#portalPage .login-box{background:rgba(8,5,14,.82);border-color:rgba(255,0,140,.35);box-shadow:0 0 35px rgba(255,0,140,.28),0 0 90px rgba(255,0,140,.12);backdrop-filter:blur(8px);}
+</style>
 </head>
 
 <body>
@@ -2055,13 +2112,13 @@ input:checked + .slider:before {
     <button class="nav-link active"
             id="nav-home"
             onclick="switchPage('home')">
-        🏠 HOME
+        <span class="nav-icon">🏠</span><span class="nav-label">HOME</span>
     </button>
 
     <button class="nav-link"
             id="nav-profile"
             onclick="switchPage('profile')">
-        👤 PROFILE / VAULT
+        <span class="nav-icon">👤</span><span class="nav-label">PROFILE / VAULT</span>
     </button>
 
     <div class="message-wrap">
@@ -2069,7 +2126,7 @@ input:checked + .slider:before {
                 id="messageButton"
                 onclick="toggleMessageHistoryMenu(event)"
                 title="Messages">
-            💬 MESSAGE
+            <span class="nav-icon">💬</span><span class="nav-label">MESSAGE</span>
             <span id="messageHistoryBadge" class="notification-badge">0</span>
         </button>
 
@@ -2087,7 +2144,7 @@ input:checked + .slider:before {
                 id="notificationButton"
                 onclick="toggleNotificationPanel()"
                 title="Friend requests">
-            🔔
+            <span class="nav-icon">🔔</span>
             <span id="notificationBadge" class="notification-badge">0</span>
         </button>
 
@@ -2101,12 +2158,12 @@ input:checked + .slider:before {
 
     <button class="nav-link"
             onclick="openSettings()">
-        ⚙️ SETTINGS
+        <span class="nav-icon">⚙️</span><span class="nav-label">SETTINGS</span>
     </button>
 
     <button class="nav-link"
             onclick="logout()">
-        🚪 LOGOUT
+        <span class="nav-icon">🚪</span><span class="nav-label">LOGOUT</span>
     </button>
 
 </div>
@@ -4164,32 +4221,29 @@ async function addMemories() {
             if (status) status.innerText = `UPLOADING ${uploaded}/${files.length}...`;
         }
 
-        // Automatically publish every uploaded Vault media item as a status.
-        // The same status card is immediately shown in both Home and Profile.
+        // Publish ONE folder status, not one status per uploaded photo/video.
+        // The actual photos/videos remain inside the folder in Profile/Vault.
         if (uploadedMedia.length) {
-            if (status) status.innerText = "PUBLISHING TO STATUS...";
-            for (const media of uploadedMedia) {
-                const statusContent = `${currentFolderName || document.getElementById("vault-folder-name")?.value?.trim() || "VAULT"}`;
-                const { data: statusPost, error: statusError } = await _supabase.from("status_posts")
-                    .insert([{
-                        user_id: currentUser.id,
-                        content: statusContent,
-                        media_url: media.url,
-                        media_type: media.type
-                    }])
-                    .select("*").single();
+            if (status) status.innerText = "PUBLISHING FOLDER TO STATUS...";
+            const statusContent = `📁 ${currentFolderName || document.getElementById("vault-folder-name")?.value?.trim() || "VAULT"}`;
+            const { data: statusPost, error: statusError } = await _supabase.from("status_posts")
+                .insert([{
+                    user_id: currentUser.id,
+                    content: statusContent,
+                    media_url: null,
+                    media_type: null
+                }])
+                .select("*").single();
 
-                if (statusError) {
-                    console.error("Automatic Vault status failed:", statusError);
-                    continue;
-                }
-
+            if (statusError) {
+                console.error("Automatic Vault folder status failed:", statusError);
+            } else {
                 const post = statusPost || {
                     id: "local-" + Date.now(),
                     user_id: currentUser.id,
                     content: statusContent,
-                    media_url: media.url,
-                    media_type: media.type,
+                    media_url: null,
+                    media_type: null,
                     created_at: new Date().toISOString()
                 };
                 const card = renderStatusCard(post, currentProfile || {}, {}, {}, {});
@@ -4201,13 +4255,6 @@ async function addMemories() {
             }
         }
 
-        if (!currentFolderId) {
-            currentFolderName = "";
-        }
-        updateVaultPath();
-        cancelVaultMediaSelection();
-        await loadGallery();
-        loadStatuses().catch(err => console.error("Status refresh error:", err));
         alert(`Folder created and ${uploaded} media file${uploaded === 1 ? "" : "s"} uploaded successfully.
 
 The uploaded media was also posted automatically to Home and Profile Status.`);
@@ -4340,25 +4387,38 @@ async function loadFriendRequests() {
     pendingRequestsCache=data.map(r=>({request:r,profile:map[r.user_id]})).filter(x=>x.profile); updateNotificationBadge(); return pendingRequestsCache;
 }
 async function refreshNotifications(){await loadFriendRequests();renderNotificationPanel();}
-function updateNotificationBadge(){const b=document.getElementById("notificationBadge");if(!b)return;const c=pendingRequestsCache.length+realtimeMessageNotifications.length;b.innerText=c>99?"99+":String(c);b.style.display=c?"inline-block":"none";}
+function updateNotificationBadge(){
+    const b=document.getElementById("notificationBadge");
+    if(!b)return;
+    // Bell badge is for friend requests only. Message unread counts belong to MESSAGE.
+    const c=pendingRequestsCache.length;
+    b.innerText=c>99?"99+":String(c);
+    b.style.display=c?"inline-block":"none";
+}
+
 function renderNotificationPanel(){
     const l=document.getElementById("notificationList");
     if(!l)return;
     const a=[];
+    // Keep message notifications completely out of the bell.
     pendingRequestsCache.forEach(({request,profile})=>a.push(`<div class="notification-item"><div class="notification-text"><b>${escapeHtml(profile.display_name||"MEMBER")}</b><br>sent you a friend request.</div><div class="friend-request-actions"><button class="btn" onclick="respondFriendRequest('${request.id}','accepted')">ACCEPT</button><button class="btn" style="border-color:#ff4a4a;color:#ff4a4a;" onclick="respondFriendRequest('${request.id}','declined')">DECLINE</button></div></div>`));
-    realtimeMessageNotifications.forEach(n=>{
-        const friendProfile=(Array.isArray(friendsCache)?friendsCache:[]).find(p=>String(p.id)===String(n.userId));
-        const name=n.name && n.name!=="MEMBER" ? n.name : (friendProfile?.display_name || "MEMBER");
-        n.name=name;
-        a.push(`<div class="notification-item" style="cursor:pointer" onclick="openNotificationMessage('${n.userId}')"><div class="notification-text"><b>💬 ${escapeHtml(name)}</b><br>${escapeHtml(n.text||"Sent you a message.")}</div></div>`);
-    });
     l.innerHTML=a.length?a.join(""):"<div class=\"notification-empty\">NO NEW NOTIFICATIONS</div>";
 }
-async function openNotificationMessage(userId){const n=realtimeMessageNotifications.find(x=>x.userId===userId);realtimeMessageNotifications=realtimeMessageNotifications.filter(x=>x.userId!==userId);updateNotificationBadge();renderNotificationPanel();await selectChatUser(userId,n?.name||"MEMBER");}
+
+async function openNotificationMessage(userId){
+    // Kept for compatibility with any older DOM handlers. Message alerts now open from MESSAGE only.
+    const n=realtimeMessageNotifications.find(x=>x.userId===userId);
+    realtimeMessageNotifications=realtimeMessageNotifications.filter(x=>x.userId!==userId);
+    await selectChatUser(userId,n?.name||"MEMBER");
+}
 
 async function toggleNotificationPanel() {
     const panel = document.getElementById("notificationPanel");
     if (!panel) return;
+
+    // Only one top-nav dropdown may be open at a time.
+    const messageMenu = document.getElementById("messageHistoryMenu");
+    if (messageMenu) messageMenu.classList.remove("open");
 
     const willOpen = !panel.classList.contains("open");
     panel.classList.toggle("open", willOpen);
@@ -5111,6 +5171,8 @@ async function selectChatUser(userId, displayName) {
     // Always reload from Supabase when a user is selected so a closed/reopened
     // chat cannot show an old or empty DOM state.
     await loadChatMessages(chat);
+    // Opening a conversation marks its incoming messages as read.
+    markConversationRead(key, Date.now());
     chat.dataset.loaded = "true";
 }
 
@@ -5325,12 +5387,10 @@ async function setupChatRealtime(){
             if(!chat.querySelector(`#msg-${CSS.escape(String(m.id))}`)) appendChatMessage(m,name,chat);
             markConversationRead(m.user_id, new Date(m.created_at || Date.now()).getTime());
             loadMessageHistory();
-        }else if(!realtimeMessageNotifications.some(x=>x.messageId===m.id)){
-            realtimeMessageNotifications.unshift({userId:m.user_id,name,text:m.text||"Sent you an attachment.",messageId:m.id});
-            updateNotificationBadge();
+        }else{
+            // Message notifications are handled only by the MESSAGE history/badge.
+            // Do not add message text or counts to the bell notification panel.
             loadMessageHistory();
-            renderNotificationPanel();
-            showRealtimeNotification("💬 NEW MESSAGE",`${name}: ${(m.text||"Sent an attachment").slice(0,100)}`,m.user_id,name);
         }
     };
 
@@ -6084,6 +6144,11 @@ function toggleMessageHistoryMenu(event) {
     event?.stopPropagation();
     const menu = document.getElementById("messageHistoryMenu");
     if (!menu) return;
+
+    // Only one top-nav dropdown may be open at a time.
+    const notification = document.getElementById("notificationPanel");
+    if (notification) notification.classList.remove("open");
+
     const willOpen = !menu.classList.contains("open");
     menu.classList.toggle("open", willOpen);
     if (willOpen) {
