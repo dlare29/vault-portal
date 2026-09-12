@@ -1917,6 +1917,51 @@ input:checked + .slider:before {
     min-width: 0;
     flex: 1 1 auto;
 }
+
+/* Transparent folder status preview */
+.folder-status-card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 4px 0 10px !important;
+}
+.folder-status-card .status-content {
+  background: transparent !important;
+  border: 0 !important;
+  color: #fff;
+  font-weight: 700;
+}
+.folder-status-preview {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px;
+  margin:8px 0 2px;
+}
+.folder-status-thumb {
+  width:100%; height:96px; object-fit:cover; border-radius:7px;
+  border:1px solid rgba(255,255,255,.20);
+  background:rgba(0,0,0,.15);
+  display:block;
+}
+.folder-status-video-thumb {
+  width:100%; height:96px; border-radius:7px;
+  border:1px solid rgba(255,255,255,.20);
+  background:rgba(0,0,0,.35);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px;
+}
+.folder-status-more {
+  display:inline-block; margin-top:7px; padding:3px 0; cursor:pointer;
+  color:#00f0ff; font-weight:700; font-size:11px; text-decoration:underline;
+  background:transparent; border:0;
+}
+
+.folder-status-viewer { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.72); padding:24px; box-sizing:border-box; }
+.folder-status-viewer-box { position:relative; width:min(900px,94vw); max-height:90vh; overflow:auto; padding:18px; border:1px solid rgba(0,240,255,.35); border-radius:12px; background:rgba(10,14,20,.82); backdrop-filter:blur(8px); }
+.folder-status-viewer-close { position:absolute; top:8px; right:8px; z-index:2; border:0; background:rgba(0,0,0,.5); color:#fff; cursor:pointer; border-radius:6px; padding:5px 9px; }
+.folder-status-viewer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+.folder-status-viewer-media { width:100%; max-height:360px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.15); }
 </style>
 
 
@@ -2118,7 +2163,7 @@ input:checked + .slider:before {
     <button class="nav-link"
             id="nav-profile"
             onclick="switchPage('profile')">
-        <span class="nav-icon">👤</span><span class="nav-label">PROFILE / VAULT</span>
+        <span class="nav-icon">👤</span><span class="nav-label">PROFILE</span>
     </button>
 
     <div class="message-wrap">
@@ -2202,7 +2247,7 @@ input:checked + .slider:before {
 </div>
 
 <!-- =========================
-     PROFILE / VAULT
+     PROFILE
 ========================= -->
 
 <div id="page-profile"
@@ -3258,7 +3303,7 @@ async function uploadCoverPhoto(inputEl) {
         currentProfile.cover_url = publicUrl;
         inputEl.value = "";
         updateProfileUI();
-        alert("Cover photo updated. Automatic COVER PHOTOS folder created.");
+        // Success popup removed; operation remains successful.
     } catch (e) {
         inputEl.value = "";
         alert(e.message || "Cover photo upload failed.");
@@ -3452,9 +3497,7 @@ async function saveSettings() {
 
     closeSettings();
 
-    alert(
-        "Settings saved successfully."
-    );
+    // Success popup removed; operation remains successful.
 }
 
 
@@ -3473,7 +3516,7 @@ async function uploadProfilePicture(inputEl) {
         currentProfile.avatar_url = result.secure_url;
         inputEl.value="";
         updateProfileUI();
-        alert("Profile picture updated.");
+        // Success popup removed; profile picture update remains successful.
     } catch(e) { inputEl.value=""; alert(e.message || "Avatar upload failed."); }
 }
 
@@ -3488,10 +3531,13 @@ async function createStatus(source) {
     if (!input) return alert("Status box not found. Please refresh the page.");
     const content = input.value.trim();
     const file = fileInput?.files?.[0] || (window._statusFiles || {})[source] || null;
-    if (!content && !file) return alert("Write something or add a photo/video first.");
+    const folderIdToPost = (!content && !file) ? (window.lastUploadedFolderId || null) : null;
+    const folderNameToPost = window.lastUploadedFolderName || "FOLDER";
+    if (!content && !file && !folderIdToPost) return alert("Write something, add a photo/video, or upload a folder first.");
     if (!currentUser?.id) return alert("Please log in again before posting.");
 
     let media_url = null, media_type = null;
+    const statusContent = folderIdToPost ? `📁 ${folderNameToPost} [FOLDER:${folderIdToPost}]` : content;
     if (file) {
         try {
             const result = await uploadToCloudinary(file, `vault-messenger/${currentUser.id}/status`);
@@ -3501,7 +3547,7 @@ async function createStatus(source) {
     }
 
     const { data, error } = await _supabase.from("status_posts")
-        .insert([{ user_id: currentUser.id, content, media_url, media_type }])
+        .insert([{ user_id: currentUser.id, content: statusContent, media_url, media_type }])
         .select("*").single();
     if (error) {
         if (/media_url|media_type|column/i.test(error.message || "")) {
@@ -3513,17 +3559,13 @@ async function createStatus(source) {
     input.value = "";
     if (fileInput) fileInput.value = "";
     if (window._statusFiles) delete window._statusFiles[source];
+    if (folderIdToPost) { window.lastUploadedFolderId = null; window.lastUploadedFolderName = ""; }
     const out = document.getElementById(`${source}-status-file-name`);
     if (out) out.textContent = "";
 
-    const post = data || { id: "local-" + Date.now(), user_id: currentUser.id, content, media_url, media_type, created_at: new Date().toISOString() };
-    const card = renderStatusCard(post, currentProfile || {}, {}, {}, {});
-    [document.getElementById("home-feed"), document.getElementById("profile-feed")].forEach(feed => {
-        if (!feed) return;
-        feed.querySelector(".status-empty")?.remove();
-        feed.insertAdjacentHTML("afterbegin", card);
-    });
-    loadStatuses().catch(err => console.error("Status refresh error:", err));
+    // Reload from Supabase so a folder post immediately gets its real thumbnails.
+    // This keeps the status as ONE folder post and avoids showing the yellow folder-only placeholder.
+    await loadStatuses().catch(err => console.error("Status refresh error:", err));
 }
 
 function renderStatusCard(post, profile, commentsByPost, reactionsByPost, profiles) {
@@ -3547,6 +3589,24 @@ function renderStatusCard(post, profile, commentsByPost, reactionsByPost, profil
             ? `<video class="status-post-media" controls preload="metadata" src="${escapeHtml(post.media_url)}"></video>`
             : `<img class="status-post-media" loading="lazy" src="${escapeHtml(post.media_url)}" alt="Status photo">`)
         : "";
+
+    const folderToken = String(post.content || "").match(/\[FOLDER:([^\]]+)\]/i);
+    const folderId = post.folder_id || post.folderId || (folderToken ? folderToken[1] : null);
+    const displayContent = String(post.content || "").replace(/\s*\[FOLDER:[^\]]+\]/i, "").replace(/^📁\s*/, "").trim();
+    const folderPreview = post.folder_media || post.folderMedia || post.preview_media || post.previewMedia || [];
+    const folderItems = Array.isArray(folderPreview) ? folderPreview.filter(m => (typeof m === "string" ? m : (m?.url || m?.public_url))) : [];
+    const shownFolderItems = folderItems.slice(0, 4);
+    const folderPreviewHtml = folderId ? `
+        ${shownFolderItems.length ? `<div class="folder-status-preview">${shownFolderItems.map(m => {
+            const url = typeof m === "string" ? m : (m.url || m.public_url || "");
+            const type = typeof m === "string" ? "" : (m.type || m.file_type || "");
+            return String(type).startsWith("video/")
+                ? `<div class="folder-status-video-thumb" title="Video">▶</div>`
+                : `<img class="folder-status-thumb" loading="lazy" src="${escapeHtml(url)}" alt="Folder photo">`;
+        }).join("")}</div>` : `<div class="folder-status-empty">FOLDER</div>`}
+        ${folderItems.length > 4 ? `<button type="button" class="folder-status-more" onclick="openFolderStatus('${escapeHtml(String(folderId))}')">VIEW ALL</button>` : ""}
+    ` : "";
+
     const comments = cs.map(c => {
         const cp = profiles[c.user_id] || {};
         const cn = cp.display_name || "MEMBER";
@@ -3561,10 +3621,10 @@ function renderStatusCard(post, profile, commentsByPost, reactionsByPost, profil
         return `<div class="status-comment">${ca}<div class="status-comment-body"><div class="status-comment-head"><span class="status-comment-name">${escapeHtml(cn)}</span><span class="status-comment-time">${new Date(c.created_at).toLocaleString()}</span>${c.user_id === currentUser?.id ? `<button class="status-comment-delete" onclick="deletePostComment('${c.id}')">✕</button>` : ""}</div><div class="status-comment-text">${escapeHtml(c.content || "").replace(/\n/g,"<br>")}</div>${commentMedia}</div></div>`;
     }).join("");
 
-    return `<article class="status-card" id="status-${post.id}">
+    return `<article class="status-card ${folderId ? "folder-status-card" : ""}" id="status-${post.id}">
         <div class="status-author">${avatar}<div><b>${escapeHtml(name)}</b><small>${post.created_at ? new Date(post.created_at).toLocaleString() : "Just now"}</small></div></div>
-        <div class="status-content">${escapeHtml(post.content || "").replace(/\n/g,"<br>")}</div>
-        ${statusMedia}
+        <div class="status-content">${escapeHtml(displayContent).replace(/\n/g,"<br>")}</div>
+        ${statusMedia}${folderPreviewHtml}
         ${mine ? `<button class="status-delete" onclick="deleteStatus('${post.id}')">✕</button>` : ""}
         <div class="status-interactions">
             <div class="status-action-row">
@@ -3670,11 +3730,56 @@ async function loadStatuses() {
         } catch (e) { console.warn("Comments/reactions skipped:", e); }
     }
 
+    // Folder statuses carry their folder ID inside [FOLDER:...]. Load up to all folder media
+    // so the status can show a 4-photo preview and VIEW ALL without changing status_posts schema.
+    const folderStatusIds = [...new Set(posts.map(post => {
+        const m = String(post.content || "").match(/\[FOLDER:([^\]]+)\]/i);
+        return m ? m[1] : null;
+    }).filter(Boolean))];
+    if (folderStatusIds.length) {
+        try {
+            const { data: folderMedia } = await _supabase.from("memories")
+                .select("id,folder_id,public_url,file_type,created_at")
+                .in("folder_id", folderStatusIds)
+                .order("created_at", { ascending: true });
+            const byFolder = {};
+            (folderMedia || []).forEach(item => { (byFolder[item.folder_id] ??= []).push(item); });
+            posts.forEach(post => {
+                const m = String(post.content || "").match(/\[FOLDER:([^\]]+)\]/i);
+                if (m) { post.folder_id = m[1]; post.folder_media = byFolder[m[1]] || []; }
+            });
+        } catch (e) { console.warn("Folder status preview skipped:", e); }
+    }
+
     const html = posts.map(post => renderStatusCard(post, profiles[post.user_id] || {}, commentsByPost, reactionsByPost, profiles)).join("");
     if (homeFeed) homeFeed.innerHTML = html;
     if (profileFeed) profileFeed.innerHTML = html;
 }
 
+
+async function openFolderStatus(folderId) {
+    if (!folderId || !currentUser?.id) return;
+    try {
+        const { data: items, error } = await _supabase.from("memories")
+            .select("id,public_url,file_type,created_at")
+            .eq("user_id", currentUser.id)
+            .eq("folder_id", folderId)
+            .order("created_at", { ascending: true });
+        if (error) return alert("Could not load folder photos: " + error.message);
+        const media = (items || []).filter(x => x.public_url);
+        const existing = document.getElementById("folder-status-viewer");
+        existing?.remove();
+        const html = media.map(x => String(x.file_type || "").startsWith("video/")
+            ? `<video controls class="folder-status-viewer-media" src="${escapeHtml(x.public_url)}"></video>`
+            : `<img loading="lazy" class="folder-status-viewer-media" src="${escapeHtml(x.public_url)}" alt="Folder photo">`).join("");
+        const overlay = document.createElement("div");
+        overlay.id = "folder-status-viewer";
+        overlay.className = "folder-status-viewer";
+        overlay.innerHTML = `<div class="folder-status-viewer-box"><button class="folder-status-viewer-close" type="button" onclick="document.getElementById('folder-status-viewer')?.remove()">✕</button><div class="folder-status-viewer-grid">${html || "<div>NO MEDIA</div>"}</div></div>`;
+        overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+    } catch (e) { alert(e.message || "Could not open folder."); }
+}
 
 function toggleStatusReactionPicker(postId){document.getElementById(`reaction-picker-${postId}`)?.classList.toggle("open");}
 function toggleStatusComments(postId){document.getElementById(`comment-form-${postId}`)?.classList.toggle("open");document.getElementById(`comment-input-${postId}`)?.focus();}
@@ -3973,7 +4078,7 @@ async function editFolderDetails() {
     });
     updateVaultPath();
     await loadGallery();
-    alert("Folder information saved.");
+    // Success popup removed; operation remains successful.
 }
 
 function openFolder(folderId,folderName) {
@@ -4221,52 +4326,23 @@ async function addMemories() {
             if (status) status.innerText = `UPLOADING ${uploaded}/${files.length}...`;
         }
 
-        // Publish ONE folder status, not one status per uploaded photo/video.
-        // The actual photos/videos remain inside the folder in Profile/Vault.
-        if (uploadedMedia.length) {
-            if (status) status.innerText = "PUBLISHING FOLDER TO STATUS...";
-            const statusContent = `📁 ${currentFolderName || document.getElementById("vault-folder-name")?.value?.trim() || "VAULT"}`;
-            const { data: statusPost, error: statusError } = await _supabase.from("status_posts")
-                .insert([{
-                    user_id: currentUser.id,
-                    content: statusContent,
-                    media_url: null,
-                    media_type: null
-                }])
-                .select("*").single();
-
-            if (statusError) {
-                console.error("Automatic Vault folder status failed:", statusError);
-            } else {
-                const post = statusPost || {
-                    id: "local-" + Date.now(),
-                    user_id: currentUser.id,
-                    content: statusContent,
-                    media_url: null,
-                    media_type: null,
-                    created_at: new Date().toISOString()
-                };
-                const card = renderStatusCard(post, currentProfile || {}, {}, {}, {});
-                [document.getElementById("home-feed"), document.getElementById("profile-feed")].forEach(feed => {
-                    if (!feed) return;
-                    feed.querySelector(".status-empty")?.remove();
-                    feed.insertAdjacentHTML("afterbegin", card);
-                });
-            }
-        }
-
-        alert(`Folder created and ${uploaded} media file${uploaded === 1 ? "" : "s"} uploaded successfully.
-
-The uploaded media was also posted automatically to Home and Profile Status.`);
+        // Upload/store only. Folder is NOT published automatically.
+        // Success popup removed; upload remains successful.
     } catch (e) {
         alert(e.message || "Upload failed.");
         if (status) status.innerText = "UPLOAD FAILED";
     } finally {
         if (button) button.disabled = false;
-        if (!vaultSelectedFiles.length) {
-            const input = document.getElementById("media-input");
-            if (input) input.value = "";
-        }
+        // Clear the selected-media/folder builder immediately after upload.
+        vaultSelectedFiles = [];
+        const builder = document.getElementById("vault-upload-builder");
+        const selected = document.getElementById("vault-selected-media");
+        const fields = document.getElementById("vault-folder-fields");
+        const input = document.getElementById("media-input");
+        if (builder) builder.style.display = "none";
+        if (selected) selected.innerHTML = "";
+        if (fields) fields.style.display = "";
+        if (input) input.value = "";
     }
 }
 
@@ -4895,7 +4971,7 @@ async function sendFriendRequest(friendId) {
         const friendSearch = document.getElementById("friendSearchInput");
         if (friendSearch?.value.trim()) await searchUsers(friendSearch.value);
 
-        alert("Friend request sent.");
+        // Success popup removed; operation remains successful.
     } finally {
         // Search results may have been re-rendered, so do not rely on the old button nodes.
         document.querySelectorAll('[data-friend-request-sending="1"]').forEach(btn => {
