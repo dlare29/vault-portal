@@ -5169,23 +5169,18 @@ function createChatWindow(userId, displayName) {
         chatHeader.style.cursor = "pointer";
         chatHeader.addEventListener("mousedown", (e) => {
             if (e.target.closest("button")) return;
+            e.preventDefault();
+            e.stopPropagation();
             if (chat.classList.contains("minimized")) {
-                e.preventDefault();
-                e.stopPropagation();
                 restoreChat(chat);
             } else {
-                activateChatWindow(chat);
+                minimizeChat(chat);
             }
         });
         chatHeader.addEventListener("click", (e) => {
             if (e.target.closest("button")) return;
-            if (chat.classList.contains("minimized")) {
-                e.preventDefault();
-                e.stopPropagation();
-                restoreChat(chat);
-            } else {
-                activateChatWindow(chat);
-            }
+            e.preventDefault();
+            e.stopPropagation();
         });
     }
 
