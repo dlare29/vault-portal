@@ -5222,6 +5222,14 @@ function cacheChatMessage(userId, message) {
     ));
 }
 
+function removeChatMessageFromCache(userId, messageId) {
+    const key = getChatCacheKey(userId);
+    if (!key || messageId == null) return;
+    const existing = chatMessageCache.get(key) || [];
+    const filtered = existing.filter(m => String(m?.id) !== String(messageId));
+    chatMessageCache.set(key, filtered);
+}
+
 async function selectChatUser(userId, displayName) {
     if (!currentUser || userId === currentUser.id) return;
 
@@ -5485,10 +5493,25 @@ async function setupChatRealtime(){
         .on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{
             const m=payload.new||payload.old;
             if(!m || payload.eventType==="INSERT") return;
+
+            // DELETE events contain the old row only. Remove that message from
+            // the local cache before reloading so it disappears immediately
+            // without requiring refresh/logout.
+            if(payload.eventType === "DELETE" && m.id != null){
+                const otherId = String(m.user_id) === String(currentUser.id)
+                    ? m.recipient_id
+                    : m.user_id;
+                if(otherId) removeChatMessageFromCache(otherId, m.id);
+                document.getElementById(`msg-${m.id}`)?.remove();
+            }
+
             for(const chat of openChatWindows.values()){
                 const u=getChatWindowUser(chat);
                 const relevant=u&&((m.user_id===currentUser.id&&m.recipient_id===u.id)||(m.user_id===u.id&&m.recipient_id===currentUser.id));
                 if(relevant) await loadChatMessages(chat);
+            }
+            if(payload.eventType === "DELETE" && typeof loadMessageHistory === "function") {
+                await loadMessageHistory();
             }
         })
         .subscribe(status=>console.log("Message realtime:",status));
@@ -5571,74 +5594,71 @@ async function editMessage(msg) {
 
 
 async function deleteMessage(msg) {
-
-    if (
-        !msg ||
-        msg.user_id !== currentUser.id
-    ) return;
-
+    if (!msg || String(msg.user_id) !== String(currentUser?.id)) return;
 
     const choice = await dlareDeleteMessageChoice(activeChatUser?.display_name || "MEMBER");
-       if (choice === "1") {
+    if (choice !== "1" && choice !== "2") return;
 
-        const deleted =
-            Array.from(
-                new Set([
-                    ...(msg.deleted_for || []),
-                    currentUser.id
-                ])
-            );
-
-
-        const { error } =
-            await _supabase
-                .from("messages")
-                .update({
-                    deleted_for:deleted
-                })
-                .eq("id",msg.id)
-                .eq(
-                    "user_id",
-                    currentUser.id
-                );
-
-
-        if (error)
-            return alert(error.message);
-
-
-        document
-            .getElementById(
-                `msg-${msg.id}`
-            )
-            ?.remove();
-
-
-    } else if (choice === "2") {
-
-        // DELETE FOR BOTH = hide the message for BOTH users.
-        // We use a soft-delete array instead of physically deleting the row,
-        // so replies/reactions do not break their foreign keys.
-        const otherUserId = msg.user_id === currentUser.id ? msg.recipient_id : msg.user_id;
-        const deletedFor = Array.from(new Set([
-            ...(msg.deleted_for || []),
-            currentUser.id,
-            otherUserId
-        ].filter(Boolean)));
-
-        const { error } = await _supabase
-            .from("messages")
-            .update({ deleted_for: deletedFor })
-            .eq("id", msg.id)
-            .eq("user_id", currentUser.id);
-
-        if (error) {
-            alert("Delete for both failed: " + error.message);
-        } else {
-            document.getElementById(`msg-${msg.id}`)?.remove();
-            await loadChatMessages();
+    const messageId = String(msg.id);
+    const chatUserId = String(msg.recipient_id || activeChatUser?.id || "");
+    const removeLocalMessage = async (removeFromDatabaseCache = true) => {
+        // Remove it from the in-memory cache first. Otherwise loadChatMessages()
+        // can immediately put a deleted row back into the chat before a refresh.
+        if (removeFromDatabaseCache && chatUserId) {
+            removeChatMessageFromCache(chatUserId, messageId);
         }
+        document.getElementById(`msg-${messageId}`)?.remove();
+        if (typeof loadChatMessages === "function") await loadChatMessages();
+        if (typeof loadMessageHistory === "function") await loadMessageHistory();
+    };
+
+    if (choice === "1") {
+        // DELETE FOR ME: persist a per-user local hide so it remains hidden
+        // even if the database does not have the optional deleted_for column.
+        const key = `dlare_deleted_for_me_${currentUser.id}`;
+        let hidden = [];
+        try { hidden = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) {}
+        if (!Array.isArray(hidden)) hidden = [];
+        if (!hidden.map(String).includes(messageId)) hidden.push(messageId);
+        localStorage.setItem(key, JSON.stringify(hidden));
+        await removeLocalMessage(true);
+        return;
     }
+
+    // DELETE FOR BOTH: prefer the existing soft-delete field. If that field is
+    // unavailable or the update is blocked, fall back to a real row deletion.
+    // This keeps the button functional without changing the rest of Messenger.
+    const otherUserId = msg.recipient_id;
+    const deletedFor = Array.from(new Set([
+        ...(Array.isArray(msg.deleted_for) ? msg.deleted_for : []),
+        currentUser.id,
+        otherUserId
+    ].filter(Boolean).map(String)));
+
+    let result = await _supabase
+        .from("messages")
+        .update({ deleted_for: deletedFor })
+        .eq("id", messageId)
+        .eq("user_id", currentUser.id)
+        .select("id");
+
+    if (result.error || !result.data?.length) {
+        result = await _supabase
+            .from("messages")
+            .delete()
+            .eq("id", messageId)
+            .eq("user_id", currentUser.id)
+            .select("id");
+    }
+
+    if (result.error) {
+        return alert("Delete for both failed: " + result.error.message);
+    }
+    if (!result.data?.length) {
+        return alert("Delete for both failed: the message could not be changed. Please check the Messages UPDATE/DELETE policy in Supabase.");
+    }
+
+    await removeLocalMessage();
 }
 
 
@@ -6015,6 +6035,7 @@ async function loadMessageHistory() {
 
     const rows = [...(sentResult.data || []), ...(receivedResult.data || [])]
         .filter(m => !m.deleted_for?.includes(currentUser.id))
+        .filter(m => { let h=[]; try{h=JSON.parse(localStorage.getItem(`dlare_deleted_for_me_${currentUser.id}`)||"[]");}catch(_){} return !h.map(String).includes(String(m.id)); })
         // Ignore malformed rows before they can become a "null" UUID in
         // the profiles .in(...) query below.
         .filter(m => m && m.user_id && m.recipient_id);
@@ -6267,7 +6288,8 @@ async function loadMessageHistoryConversation() {
         container.innerHTML = `<div class="message-history-empty" style="color:#ff4a4a;">CHAT ERROR: ${escapeHtml(error.message)}</div>`;
         return;
     }
-    const rows = (data || []).filter(m => !m.deleted_for?.includes(currentUser.id));
+    const rows = (data || []).filter(m => !m.deleted_for?.includes(currentUser.id))
+        .filter(m => { let h=[]; try{h=JSON.parse(localStorage.getItem(`dlare_deleted_for_me_${currentUser.id}`)||"[]");}catch(_){} return !h.map(String).includes(String(m.id)); });
     if (!rows.length) {
         container.innerHTML = '<div class="message-history-empty">NO MESSAGES YET</div>';
         return;
@@ -7288,22 +7310,22 @@ document.addEventListener("DOMContentLoaded", () => {
 #dlare-popup-root{position:fixed;inset:0;z-index:2147483647;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;font-family:inherit}
 #dlare-popup-root.open{display:flex}
 #dlare-popup-root .dlare-popup-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-#dlare-popup-root .dlare-popup-card{position:relative;width:min(440px,calc(100vw - 40px));box-sizing:border-box;border:1px solid rgba(0,238,255,.65);border-radius:14px;background:linear-gradient(145deg,rgba(9,17,29,.98),rgba(18,9,29,.98));box-shadow:0 0 0 1px rgba(255,0,170,.12),0 0 28px rgba(0,220,255,.22),0 0 55px rgba(255,0,170,.12);overflow:hidden;color:#eafcff}
+#dlare-popup-root .dlare-popup-card{position:relative;width:min(220px,calc(100vw - 40px));box-sizing:border-box;border:1px solid rgba(0,238,255,.65);border-radius:14px;background:linear-gradient(145deg,rgba(9,17,29,.98),rgba(18,9,29,.98));box-shadow:0 0 0 1px rgba(255,0,170,.12),0 0 28px rgba(0,220,255,.22),0 0 55px rgba(255,0,170,.12);overflow:hidden;color:#eafcff}
 #dlare-popup-root .dlare-popup-top{height:4px;background:linear-gradient(90deg,#00eaff,#ff24b8,#00eaff);box-shadow:0 0 12px rgba(0,234,255,.55)}
-#dlare-popup-root .dlare-popup-body{padding:20px 22px 18px}
-#dlare-popup-root .dlare-popup-title{font-size:15px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#fff;text-shadow:0 0 10px rgba(0,234,255,.35);margin:0 0 9px}
-#dlare-popup-root .dlare-popup-message{font-size:13px;line-height:1.55;color:rgba(232,245,255,.82);white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 16px}
-#dlare-popup-root .dlare-popup-input{display:block;width:100%;min-height:42px;box-sizing:border-box;border:1px solid rgba(0,234,255,.28);border-radius:9px;outline:none;background:rgba(0,0,0,.34);color:#fff;padding:10px 12px;font:inherit;resize:vertical;box-shadow:inset 0 0 14px rgba(0,0,0,.25)}
-#dlare-popup-root textarea.dlare-popup-input{min-height:88px}
+#dlare-popup-root .dlare-popup-body{padding:12px 13px 11px}
+#dlare-popup-root .dlare-popup-title{font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#fff;text-shadow:0 0 10px rgba(0,234,255,.35);margin:0 0 9px}
+#dlare-popup-root .dlare-popup-message{font-size:10px;line-height:1.55;color:rgba(232,245,255,.82);white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px}
+#dlare-popup-root .dlare-popup-input{display:block;width:100%;min-height:34px;box-sizing:border-box;border:1px solid rgba(0,234,255,.28);border-radius:9px;outline:none;background:rgba(0,0,0,.34);color:#fff;padding:7px 8px;font:inherit;resize:vertical;box-shadow:inset 0 0 14px rgba(0,0,0,.25)}
+#dlare-popup-root textarea.dlare-popup-input{min-height:65px}
 #dlare-popup-root .dlare-popup-input:focus{border-color:rgba(0,234,255,.8);box-shadow:0 0 14px rgba(0,234,255,.13),inset 0 0 14px rgba(0,0,0,.25)}
-#dlare-popup-root .dlare-popup-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:17px}
-#dlare-popup-root .dlare-popup-btn{min-width:92px;border:1px solid rgba(0,234,255,.38);border-radius:9px;padding:9px 14px;background:rgba(7,18,29,.9);color:#eaffff;font:700 12px inherit;letter-spacing:.5px;cursor:pointer;transition:.16s ease;box-shadow:0 0 10px rgba(0,234,255,.06)}
+#dlare-popup-root .dlare-popup-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;margin-top:10px}
+#dlare-popup-root .dlare-popup-btn{min-width:72px;border:1px solid rgba(0,234,255,.38);border-radius:9px;padding:7px 9px;background:rgba(7,18,29,.9);color:#eaffff;font:700 10px inherit;letter-spacing:.5px;cursor:pointer;transition:.16s ease;box-shadow:0 0 10px rgba(0,234,255,.06)}
 #dlare-popup-root .dlare-popup-btn:hover{transform:translateY(-1px);border-color:rgba(0,234,255,.85);box-shadow:0 0 15px rgba(0,234,255,.2)}
 #dlare-popup-root .dlare-popup-btn.primary{border-color:rgba(255,35,184,.65);background:linear-gradient(135deg,rgba(255,35,184,.18),rgba(0,234,255,.10));box-shadow:0 0 15px rgba(255,35,184,.12)}
 #dlare-popup-root .dlare-popup-btn.danger{border-color:rgba(255,75,115,.68);background:rgba(255,40,80,.12);color:#fff}
 #dlare-popup-root .dlare-popup-btn.cancel{opacity:.82}
-#dlare-popup-root .dlare-popup-delete-choice{display:grid;gap:10px;margin-top:4px}
-#dlare-popup-root .dlare-popup-delete-choice .dlare-popup-btn{width:100%;text-align:left;padding:12px 14px}
+#dlare-popup-root .dlare-popup-delete-choice{display:grid;gap:6px;margin-top:3px}
+#dlare-popup-root .dlare-popup-delete-choice .dlare-popup-btn{width:100%;text-align:left;padding:8px 9px}
 @media(max-width:520px){#dlare-popup-root{padding:12px}#dlare-popup-root .dlare-popup-card{width:100%}#dlare-popup-root .dlare-popup-body{padding:17px 16px 15px}}
 </style>
 <div id="dlare-popup-root" aria-hidden="true"><div class="dlare-popup-backdrop"></div><div class="dlare-popup-card" role="dialog" aria-modal="true" aria-labelledby="dlare-popup-title"><div class="dlare-popup-top"></div><div class="dlare-popup-body"><div class="dlare-popup-title" id="dlare-popup-title">DLARE</div><div class="dlare-popup-message" id="dlare-popup-message"></div><div id="dlare-popup-content"></div><div class="dlare-popup-actions" id="dlare-popup-actions"></div></div></div></div>
@@ -7739,7 +7761,7 @@ document.addEventListener('keydown',e=>{if(!active)return;if(e.key==='Escape'){e
 #messageHistoryConversationView {
     flex-direction:column; height:calc(86vh - 75px); min-height:360px;
 }
-.message-history-conversation-head { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #222; }
+.message-history-conversation-head { display:flex; align-items:center; gap:10px; padding:7px 8px; border-bottom:1px solid #222; }
 .message-history-conversation-user { display:flex; flex-direction:column; color:#00f0ff; font-weight:bold; font-size:12px; }
 .message-history-conversation-user small { color:#777; font-size:8px; margin-top:2px; }
 .message-history-conversation-messages { flex:1; overflow-y:auto; padding:14px; background:#0d0f12; }
