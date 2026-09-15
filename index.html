@@ -2046,16 +2046,25 @@ input:checked + .slider:before {
 </style>
 
 <style id="vault-folder-boundary-fix">
-/* Folder boundaries should sit close together: the old 65% cards were centered
-   inside wider grid tracks, which created the large apparent gaps. */
+/* FOLDER SPACING: make the folder row noticeably more compact without changing
+   the folder preview itself. Cards use a tighter fixed visual track so they
+   sit closer together instead of being spread across the full gallery width. */
 .gallery .folder-card{gap:0;}
 @media(min-width:601px){
-  .gallery{column-gap:0 !important;}
-  .gallery .folder-card{margin-left:-17.5% !important;margin-right:-17.5% !important;}
+  .gallery{
+    grid-template-columns:repeat(auto-fill,minmax(132px,1fr)) !important;
+    column-gap:8px !important;
+    row-gap:8px !important;
+  }
+  .gallery .folder-card{
+    width:74% !important;
+    margin-left:-13% !important;
+    margin-right:-13% !important;
+  }
 }
 @media(max-width:600px){
-  .gallery{column-gap:0 !important;}
-  .gallery .folder-card{margin-left:-17.5% !important;margin-right:-17.5% !important;}
+  .gallery{column-gap:5px !important;row-gap:7px !important;}
+  .gallery .folder-card{margin-left:-13% !important;margin-right:-13% !important;}
 }
 </style>
 <style id="dlare-cyberpunk-city-background-only-v4">
@@ -4043,7 +4052,10 @@ async function loadGallery() {
         gallery.appendChild(err);
     }
 
-    if (!visibleFolders.length && itemCounter === 0 && !mediaError) {
+    // Show the empty-state message only at the root level.
+    // Inside an opened empty folder, keep FOLDER OPTIONS visible so the user
+    // can still SAVE or DELETE the empty folder.
+    if (!folderIdAtStart && !visibleFolders.length && itemCounter === 0 && !mediaError) {
         gallery.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:30px;">NO MEDIA FOUND IN THIS SECTOR</div>';
     }
 }
@@ -5222,14 +5234,6 @@ function cacheChatMessage(userId, message) {
     ));
 }
 
-function removeChatMessageFromCache(userId, messageId) {
-    const key = getChatCacheKey(userId);
-    if (!key || messageId == null) return;
-    const existing = chatMessageCache.get(key) || [];
-    const filtered = existing.filter(m => String(m?.id) !== String(messageId));
-    chatMessageCache.set(key, filtered);
-}
-
 async function selectChatUser(userId, displayName) {
     if (!currentUser || userId === currentUser.id) return;
 
@@ -5493,25 +5497,10 @@ async function setupChatRealtime(){
         .on("postgres_changes",{event:"*",schema:"public",table:"messages"},async payload=>{
             const m=payload.new||payload.old;
             if(!m || payload.eventType==="INSERT") return;
-
-            // DELETE events contain the old row only. Remove that message from
-            // the local cache before reloading so it disappears immediately
-            // without requiring refresh/logout.
-            if(payload.eventType === "DELETE" && m.id != null){
-                const otherId = String(m.user_id) === String(currentUser.id)
-                    ? m.recipient_id
-                    : m.user_id;
-                if(otherId) removeChatMessageFromCache(otherId, m.id);
-                document.getElementById(`msg-${m.id}`)?.remove();
-            }
-
             for(const chat of openChatWindows.values()){
                 const u=getChatWindowUser(chat);
                 const relevant=u&&((m.user_id===currentUser.id&&m.recipient_id===u.id)||(m.user_id===u.id&&m.recipient_id===currentUser.id));
                 if(relevant) await loadChatMessages(chat);
-            }
-            if(payload.eventType === "DELETE" && typeof loadMessageHistory === "function") {
-                await loadMessageHistory();
             }
         })
         .subscribe(status=>console.log("Message realtime:",status));
@@ -5600,13 +5589,7 @@ async function deleteMessage(msg) {
     if (choice !== "1" && choice !== "2") return;
 
     const messageId = String(msg.id);
-    const chatUserId = String(msg.recipient_id || activeChatUser?.id || "");
-    const removeLocalMessage = async (removeFromDatabaseCache = true) => {
-        // Remove it from the in-memory cache first. Otherwise loadChatMessages()
-        // can immediately put a deleted row back into the chat before a refresh.
-        if (removeFromDatabaseCache && chatUserId) {
-            removeChatMessageFromCache(chatUserId, messageId);
-        }
+    const removeLocalMessage = async () => {
         document.getElementById(`msg-${messageId}`)?.remove();
         if (typeof loadChatMessages === "function") await loadChatMessages();
         if (typeof loadMessageHistory === "function") await loadMessageHistory();
@@ -5621,7 +5604,7 @@ async function deleteMessage(msg) {
         if (!Array.isArray(hidden)) hidden = [];
         if (!hidden.map(String).includes(messageId)) hidden.push(messageId);
         localStorage.setItem(key, JSON.stringify(hidden));
-        await removeLocalMessage(true);
+        await removeLocalMessage();
         return;
     }
 
