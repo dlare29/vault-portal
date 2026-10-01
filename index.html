@@ -1205,6 +1205,18 @@ header {
     text-align:right;
     margin-top:5px;
 }
+.chat-date-divider {
+    align-self:center;
+    margin:10px auto;
+    padding:4px 10px;
+    border:1px solid #00f0ff22;
+    border-radius:12px;
+    background:#151a20;
+    color:#888;
+    font-size:8px;
+    line-height:1.3;
+    text-align:center;
+}
 
 .chat-attachment {
     max-width:100%;
@@ -5342,6 +5354,7 @@ function appendChatMessage(msg, senderDisplayName, chat = activeChatWindow) {
     div.className = `message ${isMine ? "mine" : ""}`;
     div.id = `msg-${msg.id}`;
     div.dataset.messageId = String(msg.id);
+    div.dataset.createdAt = msg.created_at || new Date().toISOString();
 
     div.oncontextmenu = e => {
         e.preventDefault();
@@ -5349,7 +5362,28 @@ function appendChatMessage(msg, senderDisplayName, chat = activeChatWindow) {
         openMessageContext(e, msg);
     };
 
-    const time = new Date(msg.created_at || Date.now()).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    const d = new Date(msg.created_at || Date.now());
+    const time = d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+
+    const dayKey = date => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const previousMessage = Array.from(container.querySelectorAll(".message")).pop();
+    const previousDate = previousMessage?.dataset.createdAt
+        ? new Date(previousMessage.dataset.createdAt)
+        : null;
+
+    if (!previousDate || dayKey(previousDate) !== dayKey(d)) {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        let label = d.toLocaleDateString([], {year:"numeric", month:"long", day:"numeric"});
+        if (dayKey(d) === dayKey(today)) label = "Today";
+        
+
+        const divider = document.createElement("div");
+        divider.className = "chat-date-divider";
+        divider.textContent = label;
+        container.appendChild(divider);
+    }
     let attachment = "";
 
     if (msg.attachment_url) {
