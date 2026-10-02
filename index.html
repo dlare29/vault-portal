@@ -7367,6 +7367,26 @@ backdrop.addEventListener('click',()=>{if(active&&active.type!=='alert')finish(a
 document.addEventListener('keydown',e=>{if(!active)return;if(e.key==='Escape'){e.preventDefault();finish(active.type==='prompt'?null:false)}else if(e.key==='Enter'&&active.type==='alert'){e.preventDefault();finish(undefined)}});
 })();
 </script>
+
+<style id="search-overlap-fix">
+.vault-header-search{z-index:20000!important;position:relative!important;}
+.vault-header-search .home-user-results{position:absolute!important;top:calc(100% + 6px)!important;left:0!important;right:0!important;z-index:20001!important;background:#161a21!important;border:1px solid #00f0ff55!important;border-radius:8px!important;padding:6px!important;max-height:300px!important;overflow-y:auto!important;box-shadow:0 12px 35px rgba(0,0,0,.55)!important;}
+.home-card,.status-composer,.status-feed,.profile-header{position:relative!important;z-index:1!important;}
+header{z-index:500!important;}
+</style>
+
+<style id="remove-empty-search-box">
+/* The search-results element is kept for the registered-member search,
+   but it must occupy zero space and have no border when there are no results. */
+.vault-header-search .home-user-results:empty {
+    display:none !important;
+}
+.vault-header-search .home-user-results:not(:empty) {
+    display:flex !important;
+    flex-direction:column !important;
+    gap:6px !important;
+}
+</style>
 </body>
 </html>
 
