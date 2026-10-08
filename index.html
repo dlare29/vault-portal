@@ -3487,6 +3487,49 @@ async function handleAuthSuccess(user) {
 }
 
 
+// IDAGDAG DITO SA ILALIM
+
+async function restoreSupabaseSession() {
+
+    try {
+
+        const {
+            data,
+            error
+        } = await _supabase.auth.getSession();
+
+        if (error) {
+
+            console.warn(
+                "Session restore:",
+                error.message
+            );
+
+            return;
+        }
+
+        const session =
+            data?.session;
+
+        if (
+            session &&
+            session.user
+        ) {
+
+            await handleAuthSuccess(
+                session.user
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Session restore failed:",
+            error
+        );
+    }
+}
+
 async function fetchProfile() {
 
     const { data, error } =
@@ -7589,56 +7632,36 @@ document.addEventListener("click", e => {
    ENTER TO SEND
 ========================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        const input =
-            document.getElementById(
-                "chatInput"
-            );
-
-        if (input) {
-
-            input.addEventListener(
-                "keypress",
-                e => {
-
-                    if (
-                        e.key === "Enter"
-                    ) {
-
-                        e.preventDefault();
-
-                        sendMessage();
-                    }
-                }
-            );
-        }
-    }
-);
-
-
-/* =========================
-   LOGIN / REGISTER
-   Manual login only — saved sessions will NOT auto-open the dashboard
-========================= */
-
-// Allow ENTER to submit from the login form.
-// This does NOT trigger auto-login; the user still has to press Enter intentionally.
 document.addEventListener("DOMContentLoaded", () => {
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
+
+    const emailInput =
+        document.getElementById("email");
+
+    const passwordInput =
+        document.getElementById("password");
 
     const submitOnEnter = (e) => {
+
         if (e.key === "Enter") {
             e.preventDefault();
             handleAuthSubmit();
         }
     };
 
-    if (emailInput) emailInput.addEventListener("keydown", submitOnEnter);
-    if (passwordInput) passwordInput.addEventListener("keydown", submitOnEnter);
+    if (emailInput) {
+        emailInput.addEventListener(
+            "keydown",
+            submitOnEnter
+        );
+    }
+
+    if (passwordInput) {
+        passwordInput.addEventListener(
+            "keydown",
+            submitOnEnter
+        );
+    }
+
 });
 
 // IMPORTANT: Do not call _supabase.auth.getSession() here.
