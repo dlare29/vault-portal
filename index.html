@@ -3,6 +3,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<style id="dlare-preboot">
+html{background:#02070d}
+/* nothing of the app is painted until every stylesheet has been parsed (stops the raw, unstyled flash) */
+html:not(.v-ready) body>*:not(#portalPage):not(script):not(style):not(link):not(meta){visibility:hidden!important}
+/* saved session → never flash the login screen while we sign you back in */
+html.v-restoring body>*:not(script):not(style):not(link):not(meta):not(#vLock){visibility:hidden!important}
+#vGame:not(.v-drawn){visibility:hidden!important}
+</style>
+<script id="dlare-preboot-js">
+(function(){
+  var de=document.documentElement;
+  try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(/^sb-.+-auth-token$/.test(k)||k==='mockSession'){ de.classList.add('v-restoring'); break; } } }catch(e){}
+  setTimeout(function(){ de.classList.remove('v-restoring'); },7000);            /* safety: never leave the login hidden */
+  function ready(){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ de.classList.add('v-ready'); }); }); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',ready); else ready();
+  setTimeout(function(){ de.classList.add('v-ready'); },4000);                    /* safety */
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="theme-color" content="#04080f">
 <meta name="mobile-web-app-capable" content="yes">
@@ -9212,6 +9230,7 @@ html body .standalone-create-group-card input:focus{border-color:var(--v-cy)!imp
       if(cv&&p.cover_url){ var want='url("'+String(p.cover_url).replace(/"/g,'\\"')+'")'; if(cv.style.backgroundImage!==want) cv.style.backgroundImage=want; }
     }catch(e){}
   }
+  window.vSyncProfile=syncProfile;
   var av=document.querySelector('.standalone-profile-avatar-wrap');
   if(av){ av.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){e.preventDefault();av.click();} }); }
 
@@ -10781,7 +10800,7 @@ html body #chatWindowsContainer .chat-window .v-sheet{background:#030810!importa
       if(emaDt>27&&QL<2&&t-qlAt>2500){ QL++; qlAt=t; emaDt=16.7; resize(); }   /* slow phone → render lighter so taps stay instant */
     }
     if(chatOpen()&&!MP.on){ if(state==='play'||state==='armed') reset(); raf=requestAnimationFrame(frame); return; }
-    update(dt); draw();
+    update(dt); draw(); if(!host.classList.contains('v-drawn')) host.classList.add('v-drawn');
     raf=requestAnimationFrame(frame);
   }
   function startLoop(){ if(!raf&&visible&&inView){ last=performance.now(); raf=requestAnimationFrame(frame); } }
@@ -13586,7 +13605,7 @@ html body #chatWindowsContainer .chat-window.v-editing .chat-send-btn{background
 
   /* ---------- stay signed in ---------- */
   var has0=window.handleAuthSuccess;
-  if(typeof has0==='function') window.handleAuthSuccess=async function(){ window.__v25in=true; window.__v25bye=false; return has0.apply(this,arguments); };
+  if(typeof has0==='function') window.handleAuthSuccess=async function(){ window.__v25in=true; window.__v25bye=false; var r=await has0.apply(this,arguments); try{ if(window.vSyncProfile) window.vSyncProfile(); }catch(e){} return r; };
   safe(function(){ _supabase.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_OUT'&&window.__v25in&&!window.__v25bye){ location.reload(); } }); });
   /* lock again when the app comes back after a minute in the background */
   var hiddenAt=0;
